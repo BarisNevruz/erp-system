@@ -82,9 +82,7 @@ export default function DecisionsPage() {
 
   
 
-    localStorage.setItem("erp_decisions", JSON.stringify([...existing, ...newRecords]));
-    setStatusText(`${newRecords.length} adet karar kayıt altına alındı.`);
-  }
+    
 async function saveAllDecisions() {
   const filledRows = getFilledRows();
 
