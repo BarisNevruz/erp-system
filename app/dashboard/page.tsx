@@ -1,150 +1,585 @@
 "use client";
 
+import { SessionProvider, signOut, useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
-import { supabase } from "../../lib/supabase";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
-export default function DashboardPage() {
-  const [kararlar, setKararlar] = useState<any[]>([]);
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
+
+type Decision = {
+  id: number;
+  meetingNo: string;
+  decision: string;
+  responsible: string;
+  department: string;
+  priority: string;
+  deadline: string;
+  status: string;
+  mailSent: boolean;
+};
+
+function DashboardContent() {
+  const { data: session } = useSession();
+  const router = useRouter();
+
+  const [records, setRecords] = useState<Decision[]>([]);
+  const [role, setRole] = useState("Operatör");
+  const [fullName, setFullName] = useState("Kullanıcı");
 
   useEffect(() => {
-    verileriGetir();
-  }, []);
+    loadData();
+    loadProfile();
+  }, [session?.user?.email]);
 
-  async function verileriGetir() {
-    const { data, error } = await supabase
-      .from("meeting_decisions")
+  async function loadProfile() {
+    if (!session?.user?.email) return;
+
+    const { data } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("email", session.user.email)
+      .eq("active", true)
+      .single();
+
+    if (data) {
+      setRole(data.role);
+      setFullName(data.full_name);
+    }
+  }
+
+  async function loadData() {
+    const { data } = await supabase
+      .from("decisions")
       .select("*")
       .order("id", { ascending: false });
 
-    if (error) {
-      alert(error.message);
+    const mapped = (data || []).map((r: any) => ({
+      id: r.id,
+      meetingNo: r.meeting_no,
+      decision: r.decision,
+      responsible: r.responsible,
+      department: r.department,
+      priority: r.priority,
+      deadline: r.deadline,
+      status: r.status,
+      mailSent: r.mail_sent,
+    }));
+
+    setRecords(mapped);
+  }
+
+  function isLate(d: Decision) {
+    if (!d.deadline) return false;
+
+    if (d.status === "Tamamlandı") return false;
+    if (d.status === "İptal") return false;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const deadline = new Date(d.deadline);
+    deadline.setHours(0, 0, 0, 0);
+
+    return deadline < today;
+  }
+
+  function copyWhatsAppLateTasks() {
+    const waGroups = JSON.parse(
+      localStorage.getItem("erp_whatsapp_groups") || "[]"
+    );
+
+    const yonetimGroup = waGroups.find(
+      (g: any) =>
+        g.groupName === "Yönetim" &&
+        g.active !== false
+    );
+
+    if (!yonetimGroup?.link) {
+      alert(
+        "Ayarlar sayfasında Yönetim WhatsApp grup linki bulunamadı."
+      );
       return;
     }
 
-    setKararlar(data || []);
+    const lateTasks = records.filter((r) =>
+      isLate(r)
+    );
+
+    if (lateTasks.length === 0) {
+      alert("Geciken görev bulunamadı.");
+      return;
+    }
+
+    let message = "GECİKEN GÖREVLER\n";
+    message +=
+      "Tarih: " +
+      new Date().toLocaleDateString("tr-TR") +
+      "\n";
+
+    message +=
+      "--------------------------------\n";
+
+    lateTasks.forEach((r, index) => {
+      message += `${index + 1}) ${r.decision}\n`;
+      message += `Sorumlu: ${r.responsible}\n`;
+      message += `Birim: ${r.department}\n`;
+      message += `Termin: ${r.deadline}\n`;
+      message += `Öncelik: ${r.priority}\n`;
+      message +=
+        "--------------------------------\n";
+    });
+
+    message +=
+      "\nLütfen aksiyon durumlarını güncelleyiniz.";
+
+    navigator.clipboard.writeText(message);
+
+    window.open(yonetimGroup.link, "_blank");
+
+    alert(
+      "Mesaj panoya kopyalandı. WhatsApp grubuna Ctrl + V yapabilirsiniz."
+    );
   }
 
-  const bugun = new Date().toISOString().slice(0, 10);
+  const canEdit =
+    role === "Yönetici" ||
+    role === "Mühendis";
 
-  const toplam = kararlar.length;
-  const bekleyen = kararlar.filter((x) => x.durum === "Bekliyor").length;
-  const devam = kararlar.filter((x) => x.durum === "Devam Ediyor").length;
-  const tamam = kararlar.filter((x) => x.durum === "Tamamlandı").length;
-  const geciken = kararlar.filter(
-    (x) => x.termin_tarihi < bugun && x.durum !== "Tamamlandı" && x.durum !== "İptal"
+  const total = records.length;
+
+  const late = records.filter((r) =>
+    isLate(r)
   ).length;
-  const kritik = kararlar.filter((x) => x.oncelik === "Kritik").length;
 
-  const gecikenListe = kararlar.filter(
-    (x) => x.termin_tarihi < bugun && x.durum !== "Tamamlandı" && x.durum !== "İptal"
+  const completed = records.filter(
+    (r) => r.status === "Tamamlandı"
+  ).length;
+
+  const waiting = records.filter(
+    (r) =>
+      r.status !== "Tamamlandı" &&
+      r.status !== "İptal"
+  ).length;
+
+  const statusChart = [
+    {
+      name: "Bekleyen",
+      value: waiting,
+    },
+    {
+      name: "Tamamlanan",
+      value: completed,
+    },
+    {
+      name: "Geciken",
+      value: late,
+    },
+  ];
+
+  const departmentData = Object.values(
+    records.reduce((acc: any, item) => {
+      if (!acc[item.department]) {
+        acc[item.department] = {
+          department: item.department,
+          total: 0,
+        };
+      }
+
+      acc[item.department].total += 1;
+
+      return acc;
+    }, {})
   );
 
+  const COLORS = [
+    "#2563eb",
+    "#16a34a",
+    "#dc2626",
+  ];
+
+  const criticalList = records
+    .filter(
+      (r) =>
+        isLate(r) ||
+        r.priority === "Kritik"
+    )
+    .slice(0, 8);
+
   return (
-    <main className="min-h-screen bg-slate-100 p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
+    <main className="min-h-screen bg-slate-900 flex">
+      <aside className="w-72 bg-slate-950 text-white min-h-screen">
+        <div className="p-6 border-b border-slate-800">
+          <h1 className="text-2xl font-bold">
+            {fullName}
+          </h1>
+
+          <p className="text-slate-400 text-sm mt-2">
+            Yönetim Paneli
+          </p>
+
+          <p className="text-blue-400 text-sm mt-3">
+            Yetki: {role}
+          </p>
+        </div>
+
+        <nav className="p-4 space-y-2">
+          <button
+            onClick={() => router.push("/")}
+            className="w-full text-left hover:bg-slate-800 px-4 py-3 rounded-xl"
+          >
+            Ana Sayfa
+          </button>
+
+          <button
+            onClick={() =>
+              router.push("/dashboard")
+            }
+            className="w-full text-left bg-slate-800 px-4 py-3 rounded-xl"
+          >
+            Dashboard
+          </button>
+
+          {canEdit && (
+            <button
+              onClick={() =>
+                router.push("/meeting")
+              }
+              className="w-full text-left hover:bg-slate-800 px-4 py-3 rounded-xl"
+            >
+              Toplantı Karar Girişi
+            </button>
+          )}
+
+          <button
+            onClick={() =>
+              router.push("/decision-records")
+            }
+            className="w-full text-left hover:bg-slate-800 px-4 py-3 rounded-xl"
+          >
+            Karar Kayıtları
+          </button>
+
+          <button
+            onClick={() =>
+              router.push("/daily")
+            }
+            className="w-full text-left hover:bg-slate-800 px-4 py-3 rounded-xl"
+          >
+            Günlük Faaliyet
+          </button>
+
+          <button
+            onClick={() =>
+              router.push(
+                "/activity-records"
+              )
+            }
+            className="w-full text-left hover:bg-slate-800 px-4 py-3 rounded-xl"
+          >
+            Faaliyet Kayıtları
+          </button>
+
+          {role === "Yönetici" && (
+            <button
+              onClick={() =>
+                router.push("/settings")
+              }
+              className="w-full text-left hover:bg-slate-800 px-4 py-3 rounded-xl"
+            >
+              Ayarlar
+            </button>
+          )}
+        </nav>
+
+        <div className="p-4">
+          <button
+            onClick={() =>
+              signOut({
+                callbackUrl: "/login",
+              })
+            }
+            className="w-full bg-red-600 hover:bg-red-700 py-3 rounded-xl font-semibold"
+          >
+            Çıkış Yap
+          </button>
+        </div>
+      </aside>
+
+      <section className="flex-1 p-8">
+        <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6 flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-slate-800">
-              Barış Nevruz Yönetim Dashboard
-            </h1>
-            <p className="text-slate-500 mt-2">
-              Toplantı kararları ve görev takip özeti
+            <h2 className="text-3xl font-bold text-white">
+              ERP Dashboard
+            </h2>
+
+            <p className="text-slate-300 mt-2">
+              Hoş geldiniz,{" "}
+              {session?.user?.email}
+            </p>
+
+            <p className="text-blue-400 text-sm mt-1">
+              Yetki: {role}
             </p>
           </div>
 
-          <div className="flex gap-3">
-            <a href="/" className="btnDark">Ana Sayfa</a>
-            <a href="/meeting" className="btnBlue">Yeni Karar</a>
-            <a href="/decisions" className="btnDark">Karar Listesi</a>
+          <div className="bg-slate-900 px-5 py-3 rounded-xl">
+            <p className="text-sm text-slate-300">
+              Sistem Durumu
+            </p>
+
+            <p className="font-bold text-green-500">
+              Aktif
+            </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-5">
-          <Card title="Toplam Karar" value={toplam} color="#2563eb" />
-          <Card title="Bekleyen" value={bekleyen} color="#f59e0b" />
-          <Card title="Devam Eden" value={devam} color="#0ea5e9" />
-          <Card title="Tamamlanan" value={tamam} color="#16a34a" />
-          <Card title="Geciken" value={geciken} color="#dc2626" />
-          <Card title="Kritik" value={kritik} color="#7c3aed" />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8">
+          <KpiCard
+            title="Toplam Karar"
+            value={total}
+            color="bg-blue-600"
+          />
+
+          <KpiCard
+            title="Açık Görev"
+            value={waiting}
+            color="bg-yellow-600"
+          />
+
+          <KpiCard
+            title="Tamamlanan"
+            value={completed}
+            color="bg-green-600"
+          />
+
+          <KpiCard
+            title="Geciken"
+            value={late}
+            color="bg-red-600"
+          />
         </div>
 
-        <div className="bg-white rounded-2xl shadow mt-10 p-6">
-          <h2 className="text-2xl font-bold mb-5 text-red-700">
-            Geciken Görevler
-          </h2>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+          <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6">
+            <h3 className="text-xl font-bold text-white mb-6">
+              Görev Durum Grafiği
+            </h3>
 
-          <table className="w-full border-collapse">
-            <thead>
-              <tr style={{ background: "#991b1b", color: "white" }}>
-                <th className="p-3 text-left">Karar</th>
-                <th className="p-3 text-left">İlgili Kişiler</th>
-                <th className="p-3 text-left">Birim</th>
-                <th className="p-3 text-left">Termin</th>
-                <th className="p-3 text-left">Durum</th>
-              </tr>
-            </thead>
+            <div className="h-[320px]">
+              <ResponsiveContainer
+                width="100%"
+                height="100%"
+              >
+                <PieChart>
+                  <Pie
+                    data={statusChart}
+                    dataKey="value"
+                    nameKey="name"
+                    outerRadius={110}
+                    label
+                  >
+                    {statusChart.map(
+                      (entry, index) => (
+                        <Cell
+                          key={index}
+                          fill={
+                            COLORS[
+                              index %
+                                COLORS.length
+                            ]
+                          }
+                        />
+                      )
+                    )}
+                  </Pie>
 
-            <tbody>
-              {gecikenListe.length === 0 && (
-                <tr>
-                  <td className="p-4 text-slate-500" colSpan={5}>
-                    Geciken görev bulunmuyor.
-                  </td>
-                </tr>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6">
+            <h3 className="text-xl font-bold text-white mb-6">
+              Birim Görev Dağılımı
+            </h3>
+
+            <div className="h-[320px]">
+              <ResponsiveContainer
+                width="100%"
+                height="100%"
+              >
+                <BarChart
+                  data={departmentData}
+                >
+                  <XAxis
+                    dataKey="department"
+                    stroke="#cbd5e1"
+                  />
+
+                  <YAxis stroke="#cbd5e1" />
+
+                  <Tooltip />
+
+                  <Bar
+                    dataKey="total"
+                    fill="#2563eb"
+                    radius={[8, 8, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div className="xl:col-span-2 bg-slate-800 rounded-2xl border border-slate-700 p-6">
+            <h3 className="text-xl font-bold text-white mb-5">
+              Kritik / Geciken Görevler
+            </h3>
+
+            <div className="space-y-3">
+              {criticalList.length ===
+                0 && (
+                <p className="text-slate-300">
+                  Kritik görev yok.
+                </p>
               )}
 
-              {gecikenListe.map((item) => (
-                <tr key={item.id} style={{ borderBottom: "1px solid #e2e8f0", background: "#fee2e2" }}>
-                  <td className="p-3">{item.karar_maddesi}</td>
-                  <td className="p-3">{item.sorumlu_kisi}</td>
-                  <td className="p-3">{item.birim}</td>
-                  <td className="p-3">{item.termin_tarihi}</td>
-                  <td className="p-3 font-bold text-red-700">{item.durum}</td>
-                </tr>
+              {criticalList.map((r) => (
+                <div
+                  key={r.id}
+                  className={
+                    isLate(r)
+                      ? "border rounded-xl p-4 bg-red-900/30"
+                      : "border rounded-xl p-4 bg-yellow-900/30"
+                  }
+                >
+                  <div className="flex justify-between">
+                    <h4 className="font-semibold text-white">
+                      {r.decision}
+                    </h4>
+
+                    <span
+                      className={
+                        isLate(r)
+                          ? "text-red-500 font-bold"
+                          : "text-yellow-400 font-bold"
+                      }
+                    >
+                      {isLate(r)
+                        ? "GECİKTİ"
+                        : r.priority}
+                    </span>
+                  </div>
+
+                  <p className="text-sm text-slate-300 mt-2">
+                    Sorumlu:{" "}
+                    {r.responsible} |
+                    Birim:{" "}
+                    {r.department} |
+                    Termin:{" "}
+                    {r.deadline}
+                  </p>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </div>
+
+          <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6">
+            <h3 className="text-xl font-bold text-white mb-5">
+              Hızlı İşlemler
+            </h3>
+
+            <div className="space-y-3">
+              {canEdit && (
+                <button
+                  onClick={() =>
+                    router.push("/meeting")
+                  }
+                  className="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-xl font-semibold"
+                >
+                  Yeni Karar Gir
+                </button>
+              )}
+
+              <button
+                onClick={() =>
+                  router.push("/decision-records")
+                }
+                className="w-full bg-slate-700 hover:bg-slate-600 py-3 rounded-xl font-semibold"
+              >
+                Karar Kayıtları
+              </button>
+
+              {role === "Yönetici" && (
+                <button
+                  onClick={() =>
+                    router.push("/settings")
+                  }
+                  className="w-full bg-green-600 hover:bg-green-700 py-3 rounded-xl font-semibold"
+                >
+                  Ayarlar
+                </button>
+              )}
+
+              {canEdit && (
+                <button
+                  onClick={
+                    copyWhatsAppLateTasks
+                  }
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 py-3 rounded-xl font-semibold"
+                >
+                  Gecikenleri WhatsApp Hazırla
+                </button>
+              )}
+            </div>
+          </div>
         </div>
-
-        <div className="bg-white rounded-2xl shadow mt-8 p-6">
-          <h2 className="text-2xl font-bold mb-5">
-            Son Eklenen Kararlar
-          </h2>
-
-          <table className="w-full border-collapse">
-            <thead>
-              <tr style={{ background: "#0f172a", color: "white" }}>
-                <th className="p-3 text-left">Karar</th>
-                <th className="p-3 text-left">Kişiler</th>
-                <th className="p-3 text-left">Birim</th>
-                <th className="p-3 text-left">Öncelik</th>
-                <th className="p-3 text-left">Durum</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {kararlar.slice(0, 10).map((item) => (
-                <tr key={item.id} style={{ borderBottom: "1px solid #e2e8f0" }}>
-                  <td className="p-3">{item.karar_maddesi}</td>
-                  <td className="p-3">{item.sorumlu_kisi}</td>
-                  <td className="p-3">{item.birim}</td>
-                  <td className="p-3">{item.oncelik}</td>
-                  <td className="p-3">{item.durum}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      </section>
     </main>
   );
 }
 
-function Card({ title, value, color }: { title: string; value: number; color: string }) {
+function KpiCard({
+  title,
+  value,
+  color,
+}: {
+  title: string;
+  value: number;
+  color: string;
+}) {
   return (
-    <div style={{ background: color, color: "white", padding: "28px", borderRadius: "20px" }}>
-      <div style={{ fontSize: 18, opacity: 0.9 }}>{title}</div>
-      <div style={{ fontSize: 42, fontWeight: "bold", marginTop: 8 }}>{value}</div>
+    <div
+      className={`${color} text-white rounded-2xl p-6`}
+    >
+      <p className="text-sm opacity-80">
+        {title}
+      </p>
+
+      <h3 className="text-4xl font-bold mt-3">
+        {value}
+      </h3>
     </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <SessionProvider>
+      <DashboardContent />
+    </SessionProvider>
   );
 }

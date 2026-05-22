@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { supabase } from "../../lib/supabase";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { supabase } from "@/lib/supabase";
 
 const birimler = [
   "Üretim",
@@ -21,10 +22,7 @@ const birimler = [
 ];
 
 export default function MeetingPage() {
-  const [toplantiTarihi, setToplantiTarihi] = useState("");
-  const [toplantiTuru, setToplantiTuru] = useState("Yönetim");
-  const [toplantiYeri, setToplantiYeri] = useState("");
-  const [katilimcilar, setKatilimcilar] = useState("");
+  const [people, setPeople] = useState<any[]>([]);
 
   const [kararMaddesi, setKararMaddesi] = useState("");
   const [ilgiliKisiler, setIlgiliKisiler] = useState("");
@@ -33,28 +31,34 @@ export default function MeetingPage() {
   const [terminTarihi, setTerminTarihi] = useState("");
   const [durum, setDurum] = useState("Bekliyor");
   const [yoneticiNotu, setYoneticiNotu] = useState("");
+  const [mailBirim, setMailBirim] = useState("Üretim");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setPeople(JSON.parse(localStorage.getItem("erp_people") || "[]"));
+  }, []);
 
   async function kaydet() {
-    if (!toplantiTarihi || !kararMaddesi || !ilgiliKisiler || !terminTarihi) {
-      alert("Toplantı tarihi, karar maddesi, ilgili kişiler ve termin tarihi zorunludur.");
+    if (!kararMaddesi) {
+      alert("Karar maddesi zorunludur.");
       return;
     }
 
+    setLoading(true);
+
     const { error } = await supabase.from("meeting_decisions").insert([
       {
-        toplanti_tarihi: toplantiTarihi,
-        toplanti_turu: toplantiTuru,
-        toplanti_yeri: toplantiYeri,
-        katilimcilar: katilimcilar,
         karar_maddesi: kararMaddesi,
         sorumlu_kisi: ilgiliKisiler,
-        birim: birim,
-        oncelik: oncelik,
+        birim,
+        oncelik,
         termin_tarihi: terminTarihi,
-        durum: durum,
+        durum,
         yonetici_notu: yoneticiNotu,
       },
     ]);
+
+    setLoading(false);
 
     if (error) {
       alert("Kayıt hatası: " + error.message);
@@ -65,176 +69,238 @@ export default function MeetingPage() {
 
     setKararMaddesi("");
     setIlgiliKisiler("");
+    setBirim("Üretim");
+    setOncelik("Normal");
     setTerminTarihi("");
-    setYoneticiNotu("");
     setDurum("Bekliyor");
+    setYoneticiNotu("");
+  }
+
+  async function mailGonder() {
+    if (!kararMaddesi) {
+      alert("Karar maddesi boş olamaz.");
+      return;
+    }
+
+    setLoading(true);
+
+    const { data: mailler, error: mailHata } = await supabase
+      .from("mail_recipients")
+      .select("*")
+      .eq("birim", mailBirim)
+      .eq("aktif", true);
+
+    if (mailHata) {
+      setLoading(false);
+      alert("Mail listesi alınamadı: " + mailHata.message);
+      return;
+    }
+
+    if (!mailler || mailler.length === 0) {
+      setLoading(false);
+      alert(mailBirim + " birimine ait aktif mail bulunamadı.");
+      return;
+    }
+
+    const to = mailler.map((x: any) => x.email).join(",");
+
+    const html = `
+      <div style="font-family:Arial;padding:20px">
+        <h2>Toplantı Kararı Bildirimi</h2>
+        <p><b>Karar:</b> ${kararMaddesi}</p>
+        <p><b>İlgili Kişiler:</b> ${ilgiliKisiler}</p>
+        <p><b>Birim:</b> ${birim}</p>
+        <p><b>Öncelik:</b> ${oncelik}</p>
+        <p><b>Termin:</b> ${terminTarihi}</p>
+        <p><b>Durum:</b> ${durum}</p>
+        <p><b>Yönetici Notu:</b> ${yoneticiNotu}</p>
+      </div>
+    `;
+
+    const res = await fetch("/api/send-mail", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        to,
+        subject: "Toplantı Kararı Bildirimi",
+        html,
+      }),
+    });
+
+    const sonuc = await res.json();
+
+    setLoading(false);
+
+    if (!sonuc.ok) {
+      alert("Mail gönderilemedi: " + sonuc.error);
+      return;
+    }
+
+    alert("Mail başarıyla gönderildi.");
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 p-8">
-      <div className="max-w-6xl mx-auto bg-white rounded-2xl shadow p-8">
-        <h1 className="text-3xl font-bold text-slate-800">
-          Barış Nevruz Yönetim Paneli
-        </h1>
+    <main className="min-h-screen bg-slate-900 p-8 text-white">
+      <div className="max-w-6xl mx-auto bg-slate-800 rounded-2xl border border-slate-700 p-8">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold">
+              Toplantı Karar Girişi
+            </h1>
 
-        <p className="text-slate-500 mt-2">
-          Toplantı karar kayıt ekranı
-        </p>
-
-        <h2 className="text-xl font-bold mt-8 mb-4 text-slate-700">
-          Toplantı Bilgileri
-        </h2>
-
-        <div className="grid grid-cols-2 gap-5">
-          <Field label="Toplantı Tarihi">
-            <input
-              type="date"
-              value={toplantiTarihi}
-              onChange={(e) => setToplantiTarihi(e.target.value)}
-              className="input"
-            />
-          </Field>
-
-          <Field label="Toplantı Türü">
-            <input
-              value={toplantiTuru}
-              onChange={(e) => setToplantiTuru(e.target.value)}
-              className="input"
-              placeholder="Örn: Yönetim, Üretim, Kalite"
-            />
-          </Field>
-
-          <Field label="Toplantı Yeri">
-            <input
-              value={toplantiYeri}
-              onChange={(e) => setToplantiYeri(e.target.value)}
-              className="input"
-              placeholder="Toplantı yeri"
-            />
-          </Field>
-
-          <Field label="Katılımcılar">
-            <textarea
-              value={katilimcilar}
-              onChange={(e) => setKatilimcilar(e.target.value)}
-              className="input h-24"
-              placeholder="Katılımcıları elle yazın"
-            />
-          </Field>
-        </div>
-
-        <h2 className="text-xl font-bold mt-10 mb-4 text-slate-700">
-          Karar Bilgileri
-        </h2>
-
-        <div className="grid grid-cols-2 gap-5">
-          <div className="col-span-2">
-            <Field label="Karar Maddesi">
-              <textarea
-                value={kararMaddesi}
-                onChange={(e) => setKararMaddesi(e.target.value)}
-                className="input h-28"
-                placeholder="Karar maddesi yazın"
-              />
-            </Field>
+            <p className="text-slate-300 mt-2">
+              Yönetim toplantı kararlarını kaydedin ve mail gönderin.
+            </p>
           </div>
 
-          <Field label="İlgili Kişiler">
-            <input
+          <div className="flex gap-3">
+            <Link
+              href="/dashboard"
+              className="bg-slate-700 hover:bg-slate-600 px-5 py-3 rounded-xl font-semibold"
+            >
+              Dashboard
+            </Link>
+
+            <Link
+              href="/"
+              className="bg-blue-600 hover:bg-blue-700 px-5 py-3 rounded-xl font-semibold"
+            >
+              Ana Sayfa
+            </Link>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="md:col-span-2">
+            <label className="font-bold">Karar Maddesi</label>
+
+            <textarea
+              value={kararMaddesi}
+              onChange={(e) => setKararMaddesi(e.target.value)}
+              className="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 mt-2 h-32"
+              placeholder="Toplantı kararını giriniz..."
+            />
+          </div>
+
+          <div>
+            <label className="font-bold">İlgili Kişiler</label>
+
+            <select
               value={ilgiliKisiler}
               onChange={(e) => setIlgiliKisiler(e.target.value)}
-              className="input"
-              placeholder="İlgili kişileri elle yazın"
-            />
-          </Field>
+              className="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 mt-2"
+            >
+              <option value="">Kişi seçiniz</option>
 
-          <Field label="Birim">
+              {people.map((p) => (
+                <option key={p.id} value={p.name}>
+                  {p.name} - {p.department}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="font-bold">Birim</label>
+
             <select
               value={birim}
               onChange={(e) => setBirim(e.target.value)}
-              className="input"
+              className="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 mt-2"
             >
-              {birimler.map((b) => (
-                <option key={b}>{b}</option>
+              {birimler.map((x) => (
+                <option key={x}>{x}</option>
               ))}
             </select>
-          </Field>
+          </div>
 
-          <Field label="Öncelik">
+          <div>
+            <label className="font-bold">Öncelik</label>
+
             <select
               value={oncelik}
               onChange={(e) => setOncelik(e.target.value)}
-              className="input"
+              className="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 mt-2"
             >
               <option>Düşük</option>
               <option>Normal</option>
               <option>Yüksek</option>
               <option>Kritik</option>
             </select>
-          </Field>
+          </div>
 
-          <Field label="Termin Tarihi">
+          <div>
+            <label className="font-bold">Termin Tarihi</label>
+
             <input
               type="date"
               value={terminTarihi}
               onChange={(e) => setTerminTarihi(e.target.value)}
-              className="input"
+              className="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 mt-2"
             />
-          </Field>
+          </div>
 
-          <Field label="Durum">
+          <div>
+            <label className="font-bold">Durum</label>
+
             <select
               value={durum}
               onChange={(e) => setDurum(e.target.value)}
-              className="input"
+              className="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 mt-2"
             >
               <option>Bekliyor</option>
               <option>Devam Ediyor</option>
               <option>Tamamlandı</option>
               <option>Gecikti</option>
-              <option>İptal</option>
             </select>
-          </Field>
+          </div>
 
-          <div className="col-span-2">
-            <Field label="Yönetici Notu">
-              <textarea
-                value={yoneticiNotu}
-                onChange={(e) => setYoneticiNotu(e.target.value)}
-                className="input h-24"
-                placeholder="Yönetici notu"
-              />
-            </Field>
+          <div className="md:col-span-2">
+            <label className="font-bold">Yönetici Notu</label>
+
+            <textarea
+              value={yoneticiNotu}
+              onChange={(e) => setYoneticiNotu(e.target.value)}
+              className="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 mt-2 h-24"
+              placeholder="Yönetici notu..."
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="font-bold">Mail Gönderilecek Birim</label>
+
+            <select
+              value={mailBirim}
+              onChange={(e) => setMailBirim(e.target.value)}
+              className="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 mt-2"
+            >
+              {birimler.map((x) => (
+                <option key={x}>{x}</option>
+              ))}
+            </select>
           </div>
         </div>
 
-        <button
-          onClick={kaydet}
-          style={{
-            width: "100%",
-            marginTop: "32px",
-            backgroundColor: "#1d4ed8",
-            color: "white",
-            fontSize: "22px",
-            fontWeight: "bold",
-            padding: "18px",
-            borderRadius: "14px",
-            border: "none",
-            cursor: "pointer",
-          }}
-        >
-          KAYDET
-        </button>
+        <div className="flex flex-wrap gap-4 mt-8">
+          <button
+            onClick={kaydet}
+            disabled={loading}
+            className="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-xl font-semibold disabled:opacity-50"
+          >
+            {loading ? "Kaydediliyor..." : "Kararı Kaydet"}
+          </button>
+
+          <button
+            onClick={mailGonder}
+            disabled={loading}
+            className="bg-emerald-600 hover:bg-emerald-700 px-6 py-3 rounded-xl font-semibold disabled:opacity-50"
+          >
+            Mail Gönder
+          </button>
+        </div>
       </div>
     </main>
-  );
-}
-
-function Field({ label, children }: any) {
-  return (
-    <div>
-      <label className="font-bold text-slate-700">{label}</label>
-      <div className="mt-2">{children}</div>
-    </div>
   );
 }

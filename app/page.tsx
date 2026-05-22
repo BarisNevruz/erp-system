@@ -6,6 +6,8 @@ import {
   MessageCircle,
   Settings,
 } from "lucide-react";
+import Link from "next/link";
+import type { ReactNode } from "react";
 
 export default function Home() {
   return (
@@ -17,10 +19,10 @@ export default function Home() {
         <nav className="mt-8 space-y-2">
           <MenuLink href="/dashboard" icon={<BarChart3 size={20} />} text="Dashboard" />
           <MenuLink href="/meeting" icon={<CalendarDays size={20} />} text="Toplantı Karar Girişi" />
-          <MenuLink href="/decisions" icon={<ClipboardList size={20} />} text="Karar Listesi" />
-          <MenuLink href="#" icon={<FileText size={20} />} text="Günlük Faaliyet" />
-          <MenuLink href="#" icon={<MessageCircle size={20} />} text="WhatsApp / Mail" />
-          <MenuLink href="#" icon={<Settings size={20} />} text="Ayarlar" />
+          <MenuLink href="/decision-records" icon={<ClipboardList size={20} />} text="Karar Listesi" />
+          <MenuLink href="/daily" icon={<FileText size={20} />} text="Günlük Faaliyet Girişi" />
+          <MenuLink href="/activity-records" icon={<MessageCircle size={20} />} text="Faaliyet Kayıtları / WhatsApp" />
+          <MenuLink href="/settings" icon={<Settings size={20} />} text="Ayarlar" />
         </nav>
       </aside>
 
@@ -31,13 +33,16 @@ export default function Home() {
           </h2>
 
           <p className="text-slate-500 mt-2 text-lg">
-            Toplantı kararları, görev takibi ve yönetim dashboard sistemi
+            Toplantı kararları, görev takibi, günlük faaliyet ve WhatsApp rapor sistemi
           </p>
 
-          <div className="grid grid-cols-3 gap-5 mt-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-8">
             <HomeCard title="Dashboard" desc="Canlı KPI ve yönetim özeti" href="/dashboard" />
             <HomeCard title="Toplantı Karar Girişi" desc="Yeni karar kaydı oluştur" href="/meeting" />
-            <HomeCard title="Karar Listesi" desc="Tüm kayıtları görüntüle" href="/decisions" />
+            <HomeCard title="Karar Listesi" desc="Tüm kararları görüntüle" href="/decision-records" />
+            <HomeCard title="Günlük Faaliyet Girişi" desc="Günlük faaliyetleri kaydet" href="/daily" />
+            <HomeCard title="Faaliyet Kayıtları" desc="Tarihe göre WhatsApp raporu gönder" href="/activity-records" />
+            <HomeCard title="Ayarlar" desc="Kişi, mail, grup ve sistem ayarları" href="/settings" />
           </div>
         </div>
       </section>
@@ -51,17 +56,17 @@ function MenuLink({
   text,
 }: {
   href: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
   text: string;
 }) {
   return (
-    <a
+    <Link
       href={href}
-      className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800"
+      className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 transition"
     >
       {icon}
       <span>{text}</span>
-    </a>
+    </Link>
   );
 }
 
@@ -75,12 +80,12 @@ function HomeCard({
   href: string;
 }) {
   return (
-    <a
+    <Link
       href={href}
-      className="bg-slate-50 border border-slate-200 rounded-2xl p-6 hover:shadow-lg"
+      className="bg-slate-50 border border-slate-200 rounded-2xl p-6 hover:shadow-lg transition"
     >
       <h3 className="text-xl font-bold text-slate-800">{title}</h3>
       <p className="text-slate-500 mt-2">{desc}</p>
-    </a>
+    </Link>
   );
 }
