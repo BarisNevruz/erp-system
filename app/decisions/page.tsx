@@ -80,35 +80,7 @@ export default function DecisionsPage() {
     );
   }
 
-  function saveAllDecisions() {
-    const filledRows = getFilledRows();
-
-    if (filledRows.length === 0) {
-      alert("Kaydedilecek karar bulunamadı.");
-      return;
-    }
-
-    const existing = JSON.parse(localStorage.getItem("erp_decisions") || "[]");
-
-    const newRecords = filledRows.map((r) => ({
-      id: Date.now() + Math.random(),
-      meetingDate,
-      meetingNo,
-      meetingType,
-      meetingPlace,
-      generalNote,
-      decision: r.decision,
-      responsible: r.responsible,
-      department: r.department,
-      priority: r.priority,
-      startDate: r.startDate,
-      deadline: r.deadline,
-      status: r.status,
-      managerNote: r.managerNote,
-      mailGroup: r.mailGroup,
-      createdAt: new Date().toLocaleString("tr-TR"),
-      mailSent: false,
-    }));
+  
 
     localStorage.setItem("erp_decisions", JSON.stringify([...existing, ...newRecords]));
     setStatusText(`${newRecords.length} adet karar kayıt altına alındı.`);
