@@ -124,6 +124,32 @@ export default function ActivityRecordsPage() {
     );
   }
 
+  async function kayitGuncelle(id: number, mevcutText: string) {
+    const yeniText = prompt("Faaliyet metnini düzenleyin:", mevcutText);
+
+    if (yeniText === null) return;
+
+    if (yeniText.trim() === "") {
+      alert("Faaliyet boş bırakılamaz.");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("daily_activities")
+      .update({
+        activity_text: yeniText.trim(),
+      })
+      .eq("id", id);
+
+    if (error) {
+      alert("Güncelleme hatası: " + error.message);
+      return;
+    }
+
+    alert("Kayıt güncellendi.");
+    veriGetir();
+  }
+
   async function kayitSil(id: number) {
     if (!confirm("Bu faaliyet kaydını silmek istiyor musunuz?")) return;
 
@@ -244,12 +270,26 @@ export default function ActivityRecordsPage() {
                 </td>
 
                 <td className="border p-2 text-center">
-                  <button
-                    onClick={() => kayitSil(kayit.id)}
-                    className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded-lg"
-                  >
-                    Sil
-                  </button>
+                  <div className="flex justify-center gap-2">
+                    <button
+                      onClick={() =>
+                        kayitGuncelle(
+                          kayit.id,
+                          kayit.activity_text
+                        )
+                      }
+                      className="bg-yellow-500 hover:bg-yellow-600 text-black px-3 py-1 rounded-lg font-semibold"
+                    >
+                      Düzenle
+                    </button>
+
+                    <button
+                      onClick={() => kayitSil(kayit.id)}
+                      className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded-lg"
+                    >
+                      Sil
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

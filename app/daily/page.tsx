@@ -4,13 +4,11 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 type ActivityRow = {
-  itemNo: number;
   text: string;
 };
 
 const emptyRows = () =>
-  Array.from({ length: 25 }, (_, i) => ({
-    itemNo: i + 1,
+  Array.from({ length: 25 }, () => ({
     text: "",
   }));
 
@@ -28,6 +26,24 @@ export default function DailyPage() {
     setRows(updated);
   }
 
+  async function getLastItemNoForDate() {
+    const { data, error } = await supabase
+      .from("daily_activities")
+      .select("item_no")
+      .eq("activity_date", activityDate);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (!data || data.length === 0) {
+      return 0;
+    }
+
+    const itemNumbers = data.map((r) => Number(r.item_no || 0));
+    return Math.max(...itemNumbers);
+  }
+
   async function saveActivities() {
     const filledRows = rows.filter((r) => r.text.trim() !== "");
 
@@ -36,10 +52,19 @@ export default function DailyPage() {
       return;
     }
 
-    const records = filledRows.map((r) => ({
+    let lastItemNo = 0;
+
+    try {
+      lastItemNo = await getLastItemNoForDate();
+    } catch (err: any) {
+      alert("Son madde numarası alınamadı: " + err.message);
+      return;
+    }
+
+    const records = filledRows.map((r, index) => ({
       activity_date: activityDate,
-      item_no: r.itemNo,
-      activity_text: r.text,
+      item_no: lastItemNo + index + 1,
+      activity_text: r.text.trim(),
       created_by: "Barış Nevruz",
     }));
 
@@ -52,15 +77,29 @@ export default function DailyPage() {
       return;
     }
 
-    setStatus(`${records.length} adet faaliyet kaydedildi.`);
+    setStatus(
+      `${records.length} adet faaliyet kaydedildi. Madde ${
+        lastItemNo + 1
+      } - Madde ${lastItemNo + records.length} arası eklendi.`
+    );
+
     setRows(emptyRows());
   }
 
   async function prepareWhatsappMessage() {
-    const filledRows = rows.filter((r) => r.text.trim() !== "");
+    const { data: activities, error } = await supabase
+      .from("daily_activities")
+      .select("*")
+      .eq("activity_date", activityDate)
+      .order("item_no", { ascending: true });
 
-    if (filledRows.length === 0) {
-      alert("WhatsApp için faaliyet bulunamadı.");
+    if (error) {
+      alert("Faaliyetler alınamadı: " + error.message);
+      return;
+    }
+
+    if (!activities || activities.length === 0) {
+      alert("Bu tarih için kayıtlı faaliyet bulunamadı.");
       return;
     }
 
@@ -82,8 +121,8 @@ export default function DailyPage() {
     message += "Tarih: " + activityDate + "\n";
     message += "--------------------------------\n";
 
-    filledRows.forEach((r) => {
-      message += `Madde ${r.itemNo}: ${r.text}\n`;
+    activities.forEach((r: any) => {
+      message += `Madde ${r.item_no}: ${r.activity_text}\n`;
     });
 
     message += "--------------------------------\n";
@@ -92,7 +131,9 @@ export default function DailyPage() {
     await navigator.clipboard.writeText(message);
     window.open(group.link, "_blank");
 
-    alert("WhatsApp mesajı panoya kopyalandı. Açılan gruba Ctrl + V ile yapıştırabilirsiniz.");
+    alert(
+      "WhatsApp mesajı panoya kopyalandı. Açılan gruba Ctrl + V ile yapıştırabilirsiniz."
+    );
   }
 
   return (
@@ -134,11 +175,7 @@ export default function DailyPage() {
           </button>
         </div>
 
-        {status && (
-          <p className="text-slate-300 mt-4">
-            {status}
-          </p>
-        )}
+        {status && <p className="text-slate-300 mt-4">{status}</p>}
       </div>
 
       <div className="bg-slate-800 rounded-2xl p-6 overflow-auto">
@@ -152,9 +189,9 @@ export default function DailyPage() {
 
           <tbody>
             {rows.map((r, index) => (
-              <tr key={r.itemNo}>
+              <tr key={index}>
                 <td className="border p-2 text-center font-semibold">
-                  Madde {r.itemNo}
+                  Yeni Madde
                 </td>
 
                 <td className="border p-2">

@@ -5,7 +5,8 @@ import {
   FileText,
   MessageCircle,
   Settings,
-  LogOut,
+  PackagePlus,
+  PackageSearch,
 } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -25,6 +26,10 @@ export default function Home() {
             <MenuLink href="/decision-records" icon={<ClipboardList size={20} />} text="Karar Listesi" />
             <MenuLink href="/daily" icon={<FileText size={20} />} text="Günlük Faaliyet Girişi" />
             <MenuLink href="/activity-records" icon={<MessageCircle size={20} />} text="Faaliyet Kayıtları / WhatsApp" />
+
+            <MenuLink href="/proje-siparis" icon={<PackagePlus size={20} />} text="Proje Sipariş Girişi" />
+            <MenuLink href="/proje-siparis-kayitlari" icon={<PackageSearch size={20} />} text="Proje Sipariş Kayıtları" />
+
             <MenuLink href="/settings" icon={<Settings size={20} />} text="Ayarlar" />
           </nav>
         </div>
@@ -45,7 +50,7 @@ export default function Home() {
           </h2>
 
           <p className="text-slate-500 mt-2 text-lg">
-            Toplantı kararları, görev takibi, günlük faaliyet ve WhatsApp rapor sistemi
+            Toplantı kararları, görev takibi, günlük faaliyet, proje sipariş takibi ve WhatsApp rapor sistemi
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-8">
@@ -54,6 +59,10 @@ export default function Home() {
             <HomeCard title="Karar Listesi" desc="Tüm kararları görüntüle" href="/decision-records" />
             <HomeCard title="Günlük Faaliyet Girişi" desc="Günlük faaliyetleri kaydet" href="/daily" />
             <HomeCard title="Faaliyet Kayıtları" desc="Tarihe göre WhatsApp raporu gönder" href="/activity-records" />
+
+            <HomeCard title="Proje Sipariş Girişi" desc="Yeni proje siparişi oluştur" href="/proje-siparis" />
+            <HomeCard title="Proje Sipariş Kayıtları" desc="Siparişleri, terminleri ve tonajları görüntüle" href="/proje-siparis-kayitlari" />
+
             <HomeCard title="Ayarlar" desc="Kişi, mail, grup ve sistem ayarları" href="/settings" />
           </div>
         </div>

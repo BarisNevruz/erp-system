@@ -29,17 +29,37 @@ type Decision = {
   mailSent: boolean;
 };
 
+type ProjectOrder = {
+  id: string;
+  proje_siparis_tarihi: string;
+  termin_tarihi: string;
+  proje_adi: string;
+  urun_tipi: string;
+  urun_adeti: number;
+  siyah_sac_kg: number;
+  hardox_kg: number;
+  mc700_strenx_kg: number;
+  aluminyum_kg: number;
+  crni_kg: number;
+  talasli_imalat_kg: number;
+  toplam_malzeme_kg: number;
+  musteri_adi: string;
+  tamamlanma_yuzdesi: number;
+};
+
 function DashboardContent() {
   const { data: session } = useSession();
   const router = useRouter();
 
   const [records, setRecords] = useState<Decision[]>([]);
+  const [projectOrders, setProjectOrders] = useState<ProjectOrder[]>([]);
   const [role, setRole] = useState("Operatör");
   const [fullName, setFullName] = useState("Kullanıcı");
 
   useEffect(() => {
     loadData();
     loadProfile();
+    loadProjectOrders();
   }, [session?.user?.email]);
 
   async function loadProfile() {
@@ -79,9 +99,17 @@ function DashboardContent() {
     setRecords(mapped);
   }
 
+  async function loadProjectOrders() {
+    const { data } = await supabase
+      .from("project_orders")
+      .select("*")
+      .order("termin_tarihi", { ascending: true });
+
+    setProjectOrders(data || []);
+  }
+
   function isLate(d: Decision) {
     if (!d.deadline) return false;
-
     if (d.status === "Tamamlandı") return false;
     if (d.status === "İptal") return false;
 
@@ -94,27 +122,31 @@ function DashboardContent() {
     return deadline < today;
   }
 
+  function isProjectLate(p: ProjectOrder) {
+    if (!p.termin_tarihi) return false;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const termin = new Date(p.termin_tarihi);
+    termin.setHours(0, 0, 0, 0);
+
+    return termin < today && Number(p.tamamlanma_yuzdesi || 0) < 100;
+  }
+
   function copyWhatsAppLateTasks() {
-    const waGroups = JSON.parse(
-      localStorage.getItem("erp_whatsapp_groups") || "[]"
-    );
+    const waGroups = JSON.parse(localStorage.getItem("erp_whatsapp_groups") || "[]");
 
     const yonetimGroup = waGroups.find(
-      (g: any) =>
-        g.groupName === "Yönetim" &&
-        g.active !== false
+      (g: any) => g.groupName === "Yönetim" && g.active !== false
     );
 
     if (!yonetimGroup?.link) {
-      alert(
-        "Ayarlar sayfasında Yönetim WhatsApp grup linki bulunamadı."
-      );
+      alert("Ayarlar sayfasında Yönetim WhatsApp grup linki bulunamadı.");
       return;
     }
 
-    const lateTasks = records.filter((r) =>
-      isLate(r)
-    );
+    const lateTasks = records.filter((r) => isLate(r));
 
     if (lateTasks.length === 0) {
       alert("Geciken görev bulunamadı.");
@@ -122,13 +154,8 @@ function DashboardContent() {
     }
 
     let message = "GECİKEN GÖREVLER\n";
-    message +=
-      "Tarih: " +
-      new Date().toLocaleDateString("tr-TR") +
-      "\n";
-
-    message +=
-      "--------------------------------\n";
+    message += "Tarih: " + new Date().toLocaleDateString("tr-TR") + "\n";
+    message += "--------------------------------\n";
 
     lateTasks.forEach((r, index) => {
       message += `${index + 1}) ${r.decision}\n`;
@@ -136,55 +163,77 @@ function DashboardContent() {
       message += `Birim: ${r.department}\n`;
       message += `Termin: ${r.deadline}\n`;
       message += `Öncelik: ${r.priority}\n`;
-      message +=
-        "--------------------------------\n";
+      message += "--------------------------------\n";
     });
 
-    message +=
-      "\nLütfen aksiyon durumlarını güncelleyiniz.";
+    message += "\nLütfen aksiyon durumlarını güncelleyiniz.";
 
     navigator.clipboard.writeText(message);
-
     window.open(yonetimGroup.link, "_blank");
 
-    alert(
-      "Mesaj panoya kopyalandı. WhatsApp grubuna Ctrl + V yapabilirsiniz."
-    );
+    alert("Mesaj panoya kopyalandı. WhatsApp grubuna Ctrl + V yapabilirsiniz.");
   }
 
-  const canEdit =
-    role === "Yönetici" ||
-    role === "Mühendis";
+  const canEdit = role === "Yönetici" || role === "Mühendis";
 
   const total = records.length;
-
-  const late = records.filter((r) =>
-    isLate(r)
-  ).length;
-
-  const completed = records.filter(
-    (r) => r.status === "Tamamlandı"
-  ).length;
-
+  const late = records.filter((r) => isLate(r)).length;
+  const completed = records.filter((r) => r.status === "Tamamlandı").length;
   const waiting = records.filter(
-    (r) =>
-      r.status !== "Tamamlandı" &&
-      r.status !== "İptal"
+    (r) => r.status !== "Tamamlandı" && r.status !== "İptal"
   ).length;
+
+  const toplamSiparis = projectOrders.length;
+
+  const toplamUrunAdeti = projectOrders.reduce(
+    (t, x) => t + Number(x.urun_adeti || 0),
+    0
+  );
+
+  const toplamSiyahSac = projectOrders.reduce(
+    (t, x) => t + Number(x.siyah_sac_kg || 0),
+    0
+  );
+
+  const toplamHardox = projectOrders.reduce(
+    (t, x) => t + Number(x.hardox_kg || 0),
+    0
+  );
+
+  const toplamMc700 = projectOrders.reduce(
+    (t, x) => t + Number(x.mc700_strenx_kg || 0),
+    0
+  );
+
+  const toplamAluminyum = projectOrders.reduce(
+    (t, x) => t + Number(x.aluminyum_kg || 0),
+    0
+  );
+
+  const toplamCrni = projectOrders.reduce(
+    (t, x) => t + Number(x.crni_kg || 0),
+    0
+  );
+
+  const toplamTalasli = projectOrders.reduce(
+    (t, x) => t + Number(x.talasli_imalat_kg || 0),
+    0
+  );
+
+  const genelToplamKg =
+    toplamSiyahSac +
+    toplamHardox +
+    toplamMc700 +
+    toplamAluminyum +
+    toplamCrni +
+    toplamTalasli;
+
+  const gecikenSiparisler = projectOrders.filter((x) => isProjectLate(x));
 
   const statusChart = [
-    {
-      name: "Bekleyen",
-      value: waiting,
-    },
-    {
-      name: "Tamamlanan",
-      value: completed,
-    },
-    {
-      name: "Geciken",
-      value: late,
-    },
+    { name: "Bekleyen", value: waiting },
+    { name: "Tamamlanan", value: completed },
+    { name: "Geciken", value: late },
   ];
 
   const departmentData = Object.values(
@@ -197,106 +246,75 @@ function DashboardContent() {
       }
 
       acc[item.department].total += 1;
-
       return acc;
     }, {})
   );
 
-  const COLORS = [
-    "#2563eb",
-    "#16a34a",
-    "#dc2626",
+  const materialChart = [
+    { name: "Siyah Sac", value: toplamSiyahSac },
+    { name: "Hardox", value: toplamHardox },
+    { name: "MC700-Strenx", value: toplamMc700 },
+    { name: "Alüminyum", value: toplamAluminyum },
+    { name: "CrNi", value: toplamCrni },
+    { name: "Talaşlı", value: toplamTalasli },
   ];
 
+  const COLORS = ["#2563eb", "#16a34a", "#dc2626"];
+
   const criticalList = records
-    .filter(
-      (r) =>
-        isLate(r) ||
-        r.priority === "Kritik"
-    )
+    .filter((r) => isLate(r) || r.priority === "Kritik")
     .slice(0, 8);
+
+  const sonSiparisler = projectOrders.slice(0, 8);
 
   return (
     <main className="min-h-screen bg-slate-900 flex">
       <aside className="w-72 bg-slate-950 text-white min-h-screen">
         <div className="p-6 border-b border-slate-800">
-          <h1 className="text-2xl font-bold">
-            {fullName}
-          </h1>
-
-          <p className="text-slate-400 text-sm mt-2">
-            Yönetim Paneli
-          </p>
-
-          <p className="text-blue-400 text-sm mt-3">
-            Yetki: {role}
-          </p>
+          <h1 className="text-2xl font-bold">{fullName}</h1>
+          <p className="text-slate-400 text-sm mt-2">Yönetim Paneli</p>
+          <p className="text-blue-400 text-sm mt-3">Yetki: {role}</p>
         </div>
 
         <nav className="p-4 space-y-2">
-          <button
-            onClick={() => router.push("/")}
-            className="w-full text-left hover:bg-slate-800 px-4 py-3 rounded-xl"
-          >
+          <button onClick={() => router.push("/")} className="w-full text-left hover:bg-slate-800 px-4 py-3 rounded-xl">
             Ana Sayfa
           </button>
 
-          <button
-            onClick={() =>
-              router.push("/dashboard")
-            }
-            className="w-full text-left bg-slate-800 px-4 py-3 rounded-xl"
-          >
+          <button onClick={() => router.push("/dashboard")} className="w-full text-left bg-slate-800 px-4 py-3 rounded-xl">
             Dashboard
           </button>
 
           {canEdit && (
-            <button
-              onClick={() =>
-                router.push("/meeting")
-              }
-              className="w-full text-left hover:bg-slate-800 px-4 py-3 rounded-xl"
-            >
+            <button onClick={() => router.push("/meeting")} className="w-full text-left hover:bg-slate-800 px-4 py-3 rounded-xl">
               Toplantı Karar Girişi
             </button>
           )}
 
-          <button
-            onClick={() =>
-              router.push("/decision-records")
-            }
-            className="w-full text-left hover:bg-slate-800 px-4 py-3 rounded-xl"
-          >
+          <button onClick={() => router.push("/decision-records")} className="w-full text-left hover:bg-slate-800 px-4 py-3 rounded-xl">
             Karar Kayıtları
           </button>
 
-          <button
-            onClick={() =>
-              router.push("/daily")
-            }
-            className="w-full text-left hover:bg-slate-800 px-4 py-3 rounded-xl"
-          >
+          <button onClick={() => router.push("/daily")} className="w-full text-left hover:bg-slate-800 px-4 py-3 rounded-xl">
             Günlük Faaliyet
           </button>
 
-          <button
-            onClick={() =>
-              router.push(
-                "/activity-records"
-              )
-            }
-            className="w-full text-left hover:bg-slate-800 px-4 py-3 rounded-xl"
-          >
+          <button onClick={() => router.push("/activity-records")} className="w-full text-left hover:bg-slate-800 px-4 py-3 rounded-xl">
             Faaliyet Kayıtları
           </button>
 
+          {canEdit && (
+            <button onClick={() => router.push("/proje-siparis")} className="w-full text-left hover:bg-slate-800 px-4 py-3 rounded-xl">
+              Proje Sipariş Girişi
+            </button>
+          )}
+
+          <button onClick={() => router.push("/proje-siparis-kayitlari")} className="w-full text-left hover:bg-slate-800 px-4 py-3 rounded-xl">
+            Proje Sipariş Kayıtları
+          </button>
+
           {role === "Yönetici" && (
-            <button
-              onClick={() =>
-                router.push("/settings")
-              }
-              className="w-full text-left hover:bg-slate-800 px-4 py-3 rounded-xl"
-            >
+            <button onClick={() => router.push("/settings")} className="w-full text-left hover:bg-slate-800 px-4 py-3 rounded-xl">
               Ayarlar
             </button>
           )}
@@ -304,11 +322,7 @@ function DashboardContent() {
 
         <div className="p-4">
           <button
-            onClick={() =>
-              signOut({
-                callbackUrl: "/login",
-              })
-            }
+            onClick={() => signOut({ callbackUrl: "/login" })}
             className="w-full bg-red-600 hover:bg-red-700 py-3 rounded-xl font-semibold"
           >
             Çıkış Yap
@@ -319,91 +333,56 @@ function DashboardContent() {
       <section className="flex-1 p-8">
         <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6 flex items-center justify-between mb-8">
           <div>
-            <h2 className="text-3xl font-bold text-white">
-              ERP Dashboard
-            </h2>
-
-            <p className="text-slate-300 mt-2">
-              Hoş geldiniz,{" "}
-              {session?.user?.email}
-            </p>
-
-            <p className="text-blue-400 text-sm mt-1">
-              Yetki: {role}
-            </p>
+            <h2 className="text-3xl font-bold text-white">ERP Dashboard</h2>
+            <p className="text-slate-300 mt-2">Hoş geldiniz, {session?.user?.email}</p>
+            <p className="text-blue-400 text-sm mt-1">Yetki: {role}</p>
           </div>
 
           <div className="bg-slate-900 px-5 py-3 rounded-xl">
-            <p className="text-sm text-slate-300">
-              Sistem Durumu
-            </p>
-
-            <p className="font-bold text-green-500">
-              Aktif
-            </p>
+            <p className="text-sm text-slate-300">Sistem Durumu</p>
+            <p className="font-bold text-green-500">Aktif</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8">
-          <KpiCard
-            title="Toplam Karar"
-            value={total}
-            color="bg-blue-600"
-          />
+          <KpiCard title="Toplam Karar" value={total} color="bg-blue-600" />
+          <KpiCard title="Açık Görev" value={waiting} color="bg-yellow-600" />
+          <KpiCard title="Tamamlanan" value={completed} color="bg-green-600" />
+          <KpiCard title="Geciken" value={late} color="bg-red-600" />
+        </div>
 
-          <KpiCard
-            title="Açık Görev"
-            value={waiting}
-            color="bg-yellow-600"
-          />
+        <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6 mb-8">
+          <h3 className="text-xl font-bold text-white mb-5">Proje Sipariş Özeti</h3>
 
-          <KpiCard
-            title="Tamamlanan"
-            value={completed}
-            color="bg-green-600"
-          />
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
+            <KpiCard title="Toplam Sipariş" value={toplamSiparis} color="bg-indigo-600" />
+            <KpiCard title="Ürün Adedi" value={toplamUrunAdeti} color="bg-cyan-600" />
+            <KpiCard title="Genel Toplam KG" value={Math.round(genelToplamKg)} color="bg-emerald-600" />
+            <KpiCard title="Siyah Sac KG" value={Math.round(toplamSiyahSac)} color="bg-slate-600" />
+            <KpiCard title="Geciken Sipariş" value={gecikenSiparisler.length} color="bg-red-700" />
+          </div>
 
-          <KpiCard
-            title="Geciken"
-            value={late}
-            color="bg-red-600"
-          />
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-5 mt-5">
+            <KpiCard title="Hardox KG" value={Math.round(toplamHardox)} color="bg-orange-600" />
+            <KpiCard title="MC700-Strenx KG" value={Math.round(toplamMc700)} color="bg-purple-600" />
+            <KpiCard title="Alüminyum KG" value={Math.round(toplamAluminyum)} color="bg-sky-600" />
+            <KpiCard title="CrNi KG" value={Math.round(toplamCrni)} color="bg-teal-600" />
+            <KpiCard title="Talaşlı KG" value={Math.round(toplamTalasli)} color="bg-pink-600" />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
           <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6">
-            <h3 className="text-xl font-bold text-white mb-6">
-              Görev Durum Grafiği
-            </h3>
+            <h3 className="text-xl font-bold text-white mb-6">Görev Durum Grafiği</h3>
 
             <div className="h-[320px]">
-              <ResponsiveContainer
-                width="100%"
-                height="100%"
-              >
+              <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie
-                    data={statusChart}
-                    dataKey="value"
-                    nameKey="name"
-                    outerRadius={110}
-                    label
-                  >
-                    {statusChart.map(
-                      (entry, index) => (
-                        <Cell
-                          key={index}
-                          fill={
-                            COLORS[
-                              index %
-                                COLORS.length
-                            ]
-                          }
-                        />
-                      )
-                    )}
+                  <Pie data={statusChart} dataKey="value" nameKey="name" outerRadius={110} label>
+                    {statusChart.map((entry, index) => (
+                      <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                    ))}
                   </Pie>
-
                   <Tooltip />
                 </PieChart>
               </ResponsiveContainer>
@@ -411,50 +390,80 @@ function DashboardContent() {
           </div>
 
           <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6">
-            <h3 className="text-xl font-bold text-white mb-6">
-              Birim Görev Dağılımı
-            </h3>
+            <h3 className="text-xl font-bold text-white mb-6">Malzeme Ağırlık Dağılımı</h3>
 
             <div className="h-[320px]">
-              <ResponsiveContainer
-                width="100%"
-                height="100%"
-              >
-                <BarChart
-                  data={departmentData}
-                >
-                  <XAxis
-                    dataKey="department"
-                    stroke="#cbd5e1"
-                  />
-
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={materialChart}>
+                  <XAxis dataKey="name" stroke="#cbd5e1" />
                   <YAxis stroke="#cbd5e1" />
-
                   <Tooltip />
-
-                  <Bar
-                    dataKey="total"
-                    fill="#2563eb"
-                    radius={[8, 8, 0, 0]}
-                  />
+                  <Bar dataKey="value" fill="#16a34a" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          <div className="xl:col-span-2 bg-slate-800 rounded-2xl border border-slate-700 p-6">
-            <h3 className="text-xl font-bold text-white mb-5">
-              Kritik / Geciken Görevler
-            </h3>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+          <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6">
+            <h3 className="text-xl font-bold text-white mb-5">Son Proje Siparişleri</h3>
 
             <div className="space-y-3">
-              {criticalList.length ===
-                0 && (
-                <p className="text-slate-300">
-                  Kritik görev yok.
-                </p>
+              {sonSiparisler.length === 0 && (
+                <p className="text-slate-300">Proje siparişi bulunamadı.</p>
+              )}
+
+              {sonSiparisler.map((p) => (
+                <div key={p.id} className="border border-slate-700 rounded-xl p-4 bg-slate-900">
+                  <div className="flex justify-between">
+                    <h4 className="font-semibold text-white">{p.proje_adi}</h4>
+                    <span className="text-blue-400 font-bold">%{p.tamamlanma_yuzdesi}</span>
+                  </div>
+
+                  <p className="text-sm text-slate-300 mt-2">
+                    Müşteri: {p.musteri_adi} | Ürün: {p.urun_tipi} | Adet: {p.urun_adeti} | Termin: {p.termin_tarihi}
+                  </p>
+
+                  <p className="text-sm text-slate-400 mt-1">
+                    Toplam: {Number(p.toplam_malzeme_kg || 0).toLocaleString("tr-TR")} kg
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6">
+            <h3 className="text-xl font-bold text-white mb-5">Geciken Proje Siparişleri</h3>
+
+            <div className="space-y-3">
+              {gecikenSiparisler.length === 0 && (
+                <p className="text-slate-300">Geciken proje siparişi yok.</p>
+              )}
+
+              {gecikenSiparisler.slice(0, 8).map((p) => (
+                <div key={p.id} className="border border-red-800 rounded-xl p-4 bg-red-900/30">
+                  <div className="flex justify-between">
+                    <h4 className="font-semibold text-white">{p.proje_adi}</h4>
+                    <span className="text-red-500 font-bold">GECİKTİ</span>
+                  </div>
+
+                  <p className="text-sm text-slate-300 mt-2">
+                    Müşteri: {p.musteri_adi} | Termin: {p.termin_tarihi} | Tamamlanma: %{p.tamamlanma_yuzdesi}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div className="xl:col-span-2 bg-slate-800 rounded-2xl border border-slate-700 p-6">
+            <h3 className="text-xl font-bold text-white mb-5">Kritik / Geciken Görevler</h3>
+
+            <div className="space-y-3">
+              {criticalList.length === 0 && (
+                <p className="text-slate-300">Kritik görev yok.</p>
               )}
 
               {criticalList.map((r) => (
@@ -467,30 +476,15 @@ function DashboardContent() {
                   }
                 >
                   <div className="flex justify-between">
-                    <h4 className="font-semibold text-white">
-                      {r.decision}
-                    </h4>
+                    <h4 className="font-semibold text-white">{r.decision}</h4>
 
-                    <span
-                      className={
-                        isLate(r)
-                          ? "text-red-500 font-bold"
-                          : "text-yellow-400 font-bold"
-                      }
-                    >
-                      {isLate(r)
-                        ? "GECİKTİ"
-                        : r.priority}
+                    <span className={isLate(r) ? "text-red-500 font-bold" : "text-yellow-400 font-bold"}>
+                      {isLate(r) ? "GECİKTİ" : r.priority}
                     </span>
                   </div>
 
                   <p className="text-sm text-slate-300 mt-2">
-                    Sorumlu:{" "}
-                    {r.responsible} |
-                    Birim:{" "}
-                    {r.department} |
-                    Termin:{" "}
-                    {r.deadline}
+                    Sorumlu: {r.responsible} | Birim: {r.department} | Termin: {r.deadline}
                   </p>
                 </div>
               ))}
@@ -498,49 +492,37 @@ function DashboardContent() {
           </div>
 
           <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6">
-            <h3 className="text-xl font-bold text-white mb-5">
-              Hızlı İşlemler
-            </h3>
+            <h3 className="text-xl font-bold text-white mb-5">Hızlı İşlemler</h3>
 
             <div className="space-y-3">
               {canEdit && (
-                <button
-                  onClick={() =>
-                    router.push("/meeting")
-                  }
-                  className="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-xl font-semibold"
-                >
+                <button onClick={() => router.push("/meeting")} className="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-xl font-semibold">
                   Yeni Karar Gir
                 </button>
               )}
 
-              <button
-                onClick={() =>
-                  router.push("/decision-records")
-                }
-                className="w-full bg-slate-700 hover:bg-slate-600 py-3 rounded-xl font-semibold"
-              >
+              <button onClick={() => router.push("/decision-records")} className="w-full bg-slate-700 hover:bg-slate-600 py-3 rounded-xl font-semibold">
                 Karar Kayıtları
               </button>
 
+              {canEdit && (
+                <button onClick={() => router.push("/proje-siparis")} className="w-full bg-indigo-600 hover:bg-indigo-700 py-3 rounded-xl font-semibold">
+                  Proje Sipariş Girişi
+                </button>
+              )}
+
+              <button onClick={() => router.push("/proje-siparis-kayitlari")} className="w-full bg-cyan-600 hover:bg-cyan-700 py-3 rounded-xl font-semibold">
+                Proje Sipariş Kayıtları
+              </button>
+
               {role === "Yönetici" && (
-                <button
-                  onClick={() =>
-                    router.push("/settings")
-                  }
-                  className="w-full bg-green-600 hover:bg-green-700 py-3 rounded-xl font-semibold"
-                >
+                <button onClick={() => router.push("/settings")} className="w-full bg-green-600 hover:bg-green-700 py-3 rounded-xl font-semibold">
                   Ayarlar
                 </button>
               )}
 
               {canEdit && (
-                <button
-                  onClick={
-                    copyWhatsAppLateTasks
-                  }
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 py-3 rounded-xl font-semibold"
-                >
+                <button onClick={copyWhatsAppLateTasks} className="w-full bg-emerald-600 hover:bg-emerald-700 py-3 rounded-xl font-semibold">
                   Gecikenleri WhatsApp Hazırla
                 </button>
               )}
@@ -562,15 +544,10 @@ function KpiCard({
   color: string;
 }) {
   return (
-    <div
-      className={`${color} text-white rounded-2xl p-6`}
-    >
-      <p className="text-sm opacity-80">
-        {title}
-      </p>
-
+    <div className={`${color} text-white rounded-2xl p-6`}>
+      <p className="text-sm opacity-80">{title}</p>
       <h3 className="text-4xl font-bold mt-3">
-        {value}
+        {Number(value || 0).toLocaleString("tr-TR")}
       </h3>
     </div>
   );
