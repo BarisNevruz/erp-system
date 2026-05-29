@@ -5,28 +5,40 @@ import {
   FileText,
   MessageCircle,
   Settings,
+  LogOut,
 } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import LogoutButton from "@/components/LogoutButton";
 
 export default function Home() {
   return (
     <main className="min-h-screen bg-slate-100 flex">
-      <aside className="w-72 bg-slate-900 text-white min-h-screen p-5">
-        <h1 className="text-2xl font-bold">Barış Nevruz</h1>
-        <p className="text-slate-300 text-sm mt-1">Yönetim Paneli</p>
+      <aside className="w-72 bg-slate-900 text-white min-h-screen p-5 flex flex-col">
+        <div>
+          <h1 className="text-2xl font-bold">Barış Nevruz</h1>
+          <p className="text-slate-300 text-sm mt-1">Yönetim Paneli</p>
 
-        <nav className="mt-8 space-y-2">
-          <MenuLink href="/dashboard" icon={<BarChart3 size={20} />} text="Dashboard" />
-          <MenuLink href="/meeting" icon={<CalendarDays size={20} />} text="Toplantı Karar Girişi" />
-          <MenuLink href="/decision-records" icon={<ClipboardList size={20} />} text="Karar Listesi" />
-          <MenuLink href="/daily" icon={<FileText size={20} />} text="Günlük Faaliyet Girişi" />
-          <MenuLink href="/activity-records" icon={<MessageCircle size={20} />} text="Faaliyet Kayıtları / WhatsApp" />
-          <MenuLink href="/settings" icon={<Settings size={20} />} text="Ayarlar" />
-        </nav>
+          <nav className="mt-8 space-y-2">
+            <MenuLink href="/dashboard" icon={<BarChart3 size={20} />} text="Dashboard" />
+            <MenuLink href="/meeting" icon={<CalendarDays size={20} />} text="Toplantı Karar Girişi" />
+            <MenuLink href="/decision-records" icon={<ClipboardList size={20} />} text="Karar Listesi" />
+            <MenuLink href="/daily" icon={<FileText size={20} />} text="Günlük Faaliyet Girişi" />
+            <MenuLink href="/activity-records" icon={<MessageCircle size={20} />} text="Faaliyet Kayıtları / WhatsApp" />
+            <MenuLink href="/settings" icon={<Settings size={20} />} text="Ayarlar" />
+          </nav>
+        </div>
+
+        <div className="mt-auto pt-6">
+          <LogoutButton />
+        </div>
       </aside>
 
       <section className="flex-1 p-8">
+        <div className="flex justify-end mb-4">
+          <LogoutButton />
+        </div>
+
         <div className="bg-white rounded-2xl shadow p-8">
           <h2 className="text-4xl font-bold text-slate-800">
             Barış Nevruz Yönetim Paneli
