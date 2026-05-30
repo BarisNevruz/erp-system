@@ -114,9 +114,9 @@ function DashboardContent() {
     if (d.status === "İptal") return false;
 
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
     const deadline = new Date(d.deadline);
+
+    today.setHours(0, 0, 0, 0);
     deadline.setHours(0, 0, 0, 0);
 
     return deadline < today;
@@ -126,16 +126,18 @@ function DashboardContent() {
     if (!p.termin_tarihi) return false;
 
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
     const termin = new Date(p.termin_tarihi);
+
+    today.setHours(0, 0, 0, 0);
     termin.setHours(0, 0, 0, 0);
 
     return termin < today && Number(p.tamamlanma_yuzdesi || 0) < 100;
   }
 
   function copyWhatsAppLateTasks() {
-    const waGroups = JSON.parse(localStorage.getItem("erp_whatsapp_groups") || "[]");
+    const waGroups = JSON.parse(
+      localStorage.getItem("erp_whatsapp_groups") || "[]"
+    );
 
     const yonetimGroup = waGroups.find(
       (g: any) => g.groupName === "Yönetim" && g.active !== false
@@ -184,7 +186,6 @@ function DashboardContent() {
   ).length;
 
   const toplamSiparis = projectOrders.length;
-
   const toplamUrunAdeti = projectOrders.reduce(
     (t, x) => t + Number(x.urun_adeti || 0),
     0
@@ -194,27 +195,22 @@ function DashboardContent() {
     (t, x) => t + Number(x.siyah_sac_kg || 0),
     0
   );
-
   const toplamHardox = projectOrders.reduce(
     (t, x) => t + Number(x.hardox_kg || 0),
     0
   );
-
   const toplamMc700 = projectOrders.reduce(
     (t, x) => t + Number(x.mc700_strenx_kg || 0),
     0
   );
-
   const toplamAluminyum = projectOrders.reduce(
     (t, x) => t + Number(x.aluminyum_kg || 0),
     0
   );
-
   const toplamCrni = projectOrders.reduce(
     (t, x) => t + Number(x.crni_kg || 0),
     0
   );
-
   const toplamTalasli = projectOrders.reduce(
     (t, x) => t + Number(x.talasli_imalat_kg || 0),
     0
@@ -236,24 +232,10 @@ function DashboardContent() {
     { name: "Geciken", value: late },
   ];
 
-  const departmentData = Object.values(
-    records.reduce((acc: any, item) => {
-      if (!acc[item.department]) {
-        acc[item.department] = {
-          department: item.department,
-          total: 0,
-        };
-      }
-
-      acc[item.department].total += 1;
-      return acc;
-    }, {})
-  );
-
   const materialChart = [
     { name: "Siyah Sac", value: toplamSiyahSac },
     { name: "Hardox", value: toplamHardox },
-    { name: "MC700-Strenx", value: toplamMc700 },
+    { name: "MC700", value: toplamMc700 },
     { name: "Alüminyum", value: toplamAluminyum },
     { name: "CrNi", value: toplamCrni },
     { name: "Talaşlı", value: toplamTalasli },
@@ -277,46 +259,28 @@ function DashboardContent() {
         </div>
 
         <nav className="p-4 space-y-2">
-          <button onClick={() => router.push("/")} className="w-full text-left hover:bg-slate-800 px-4 py-3 rounded-xl">
-            Ana Sayfa
-          </button>
-
-          <button onClick={() => router.push("/dashboard")} className="w-full text-left bg-slate-800 px-4 py-3 rounded-xl">
-            Dashboard
-          </button>
+          <MenuButton text="Ana Sayfa" onClick={() => router.push("/")} />
+          <MenuButton text="Dashboard" active onClick={() => router.push("/dashboard")} />
 
           {canEdit && (
-            <button onClick={() => router.push("/meeting")} className="w-full text-left hover:bg-slate-800 px-4 py-3 rounded-xl">
-              Toplantı Karar Girişi
-            </button>
+            <MenuButton text="Toplantı Karar Girişi" onClick={() => router.push("/meeting")} />
           )}
 
-          <button onClick={() => router.push("/decision-records")} className="w-full text-left hover:bg-slate-800 px-4 py-3 rounded-xl">
-            Karar Kayıtları
-          </button>
-
-          <button onClick={() => router.push("/daily")} className="w-full text-left hover:bg-slate-800 px-4 py-3 rounded-xl">
-            Günlük Faaliyet
-          </button>
-
-          <button onClick={() => router.push("/activity-records")} className="w-full text-left hover:bg-slate-800 px-4 py-3 rounded-xl">
-            Faaliyet Kayıtları
-          </button>
+          <MenuButton text="Karar Kayıtları" onClick={() => router.push("/decision-records")} />
+          <MenuButton text="Günlük Faaliyet" onClick={() => router.push("/daily")} />
+          <MenuButton text="Faaliyet Kayıtları" onClick={() => router.push("/activity-records")} />
 
           {canEdit && (
-            <button onClick={() => router.push("/proje-siparis")} className="w-full text-left hover:bg-slate-800 px-4 py-3 rounded-xl">
-              Proje Sipariş Girişi
-            </button>
+            <MenuButton text="Proje Sipariş Girişi" onClick={() => router.push("/proje-siparis")} />
           )}
 
-          <button onClick={() => router.push("/proje-siparis-kayitlari")} className="w-full text-left hover:bg-slate-800 px-4 py-3 rounded-xl">
-            Proje Sipariş Kayıtları
-          </button>
+          <MenuButton text="Proje Sipariş Kayıtları" onClick={() => router.push("/proje-siparis-kayitlari")} />
 
           {role === "Yönetici" && (
-            <button onClick={() => router.push("/settings")} className="w-full text-left hover:bg-slate-800 px-4 py-3 rounded-xl">
-              Ayarlar
-            </button>
+            <>
+              <MenuButton text="Ayarlar" onClick={() => router.push("/settings")} />
+              <MenuButton text="Mail Ayarları" onClick={() => router.push("/mail-settings")} />
+            </>
           )}
         </nav>
 
@@ -330,11 +294,13 @@ function DashboardContent() {
         </div>
       </aside>
 
-      <section className="flex-1 p-8">
+      <section className="flex-1 p-8 overflow-x-hidden">
         <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6 flex items-center justify-between mb-8">
           <div>
             <h2 className="text-3xl font-bold text-white">ERP Dashboard</h2>
-            <p className="text-slate-300 mt-2">Hoş geldiniz, {session?.user?.email}</p>
+            <p className="text-slate-300 mt-2">
+              Hoş geldiniz, {session?.user?.email}
+            </p>
             <p className="text-blue-400 text-sm mt-1">Yetki: {role}</p>
           </div>
 
@@ -352,7 +318,9 @@ function DashboardContent() {
         </div>
 
         <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6 mb-8">
-          <h3 className="text-xl font-bold text-white mb-5">Proje Sipariş Özeti</h3>
+          <h3 className="text-xl font-bold text-white mb-5">
+            Proje Sipariş Özeti
+          </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
             <KpiCard title="Toplam Sipariş" value={toplamSiparis} color="bg-indigo-600" />
@@ -372,94 +340,102 @@ function DashboardContent() {
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-          <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6">
-            <h3 className="text-xl font-bold text-white mb-6">Görev Durum Grafiği</h3>
+          <ChartBox title="Görev Durum Grafiği">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={statusChart}
+                  dataKey="value"
+                  nameKey="name"
+                  outerRadius={110}
+                  label={({ name, percent }) =>
+                    `${name} ${(percent * 100).toFixed(0)}%`
+                  }
+                >
+                  {statusChart.map((entry, index) => (
+                    <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </ChartBox>
 
-            <div className="h-[320px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={statusChart} dataKey="value" nameKey="name" outerRadius={110} label>
-                    {statusChart.map((entry, index) => (
-                      <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6">
-            <h3 className="text-xl font-bold text-white mb-6">Malzeme Ağırlık Dağılımı</h3>
-
-            <div className="h-[320px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={materialChart}>
-                  <XAxis dataKey="name" stroke="#cbd5e1" />
-                  <YAxis stroke="#cbd5e1" />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="#16a34a" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+          <ChartBox title="Malzeme Ağırlık Dağılımı">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={materialChart}
+                margin={{ top: 20, right: 20, left: 20, bottom: 80 }}
+              >
+                <XAxis
+                  dataKey="name"
+                  interval={0}
+                  angle={-30}
+                  textAnchor="end"
+                  tick={{ fill: "#ffffff", fontSize: 12 }}
+                />
+                <YAxis tick={{ fill: "#ffffff" }} />
+                <Tooltip />
+                <Bar dataKey="value" fill="#3b82f6" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartBox>
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-          <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6">
-            <h3 className="text-xl font-bold text-white mb-5">Son Proje Siparişleri</h3>
+          <ListBox title="Son Proje Siparişleri">
+            {sonSiparisler.length === 0 && (
+              <p className="text-slate-300">Proje siparişi bulunamadı.</p>
+            )}
 
-            <div className="space-y-3">
-              {sonSiparisler.length === 0 && (
-                <p className="text-slate-300">Proje siparişi bulunamadı.</p>
-              )}
-
-              {sonSiparisler.map((p) => (
-                <div key={p.id} className="border border-slate-700 rounded-xl p-4 bg-slate-900">
-                  <div className="flex justify-between">
-                    <h4 className="font-semibold text-white">{p.proje_adi}</h4>
-                    <span className="text-blue-400 font-bold">%{p.tamamlanma_yuzdesi}</span>
-                  </div>
-
-                  <p className="text-sm text-slate-300 mt-2">
-                    Müşteri: {p.musteri_adi} | Ürün: {p.urun_tipi} | Adet: {p.urun_adeti} | Termin: {p.termin_tarihi}
-                  </p>
-
-                  <p className="text-sm text-slate-400 mt-1">
-                    Toplam: {Number(p.toplam_malzeme_kg || 0).toLocaleString("tr-TR")} kg
-                  </p>
+            {sonSiparisler.map((p) => (
+              <div key={p.id} className="border border-slate-700 rounded-xl p-4 bg-slate-900">
+                <div className="flex justify-between">
+                  <h4 className="font-semibold text-white">{p.proje_adi}</h4>
+                  <span className="text-blue-400 font-bold">
+                    %{p.tamamlanma_yuzdesi}
+                  </span>
                 </div>
-              ))}
-            </div>
-          </div>
 
-          <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6">
-            <h3 className="text-xl font-bold text-white mb-5">Geciken Proje Siparişleri</h3>
+                <p className="text-sm text-slate-300 mt-2">
+                  Müşteri: {p.musteri_adi} | Ürün: {p.urun_tipi} | Adet:{" "}
+                  {p.urun_adeti} | Termin: {p.termin_tarihi}
+                </p>
 
-            <div className="space-y-3">
-              {gecikenSiparisler.length === 0 && (
-                <p className="text-slate-300">Geciken proje siparişi yok.</p>
-              )}
+                <p className="text-sm text-slate-400 mt-1">
+                  Toplam:{" "}
+                  {Number(p.toplam_malzeme_kg || 0).toLocaleString("tr-TR")} kg
+                </p>
+              </div>
+            ))}
+          </ListBox>
 
-              {gecikenSiparisler.slice(0, 8).map((p) => (
-                <div key={p.id} className="border border-red-800 rounded-xl p-4 bg-red-900/30">
-                  <div className="flex justify-between">
-                    <h4 className="font-semibold text-white">{p.proje_adi}</h4>
-                    <span className="text-red-500 font-bold">GECİKTİ</span>
-                  </div>
+          <ListBox title="Geciken Proje Siparişleri">
+            {gecikenSiparisler.length === 0 && (
+              <p className="text-slate-300">Geciken proje siparişi yok.</p>
+            )}
 
-                  <p className="text-sm text-slate-300 mt-2">
-                    Müşteri: {p.musteri_adi} | Termin: {p.termin_tarihi} | Tamamlanma: %{p.tamamlanma_yuzdesi}
-                  </p>
+            {gecikenSiparisler.slice(0, 8).map((p) => (
+              <div key={p.id} className="border border-red-800 rounded-xl p-4 bg-red-900/30">
+                <div className="flex justify-between">
+                  <h4 className="font-semibold text-white">{p.proje_adi}</h4>
+                  <span className="text-red-500 font-bold">GECİKTİ</span>
                 </div>
-              ))}
-            </div>
-          </div>
+
+                <p className="text-sm text-slate-300 mt-2">
+                  Müşteri: {p.musteri_adi} | Termin: {p.termin_tarihi} |
+                  Tamamlanma: %{p.tamamlanma_yuzdesi}
+                </p>
+              </div>
+            ))}
+          </ListBox>
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           <div className="xl:col-span-2 bg-slate-800 rounded-2xl border border-slate-700 p-6">
-            <h3 className="text-xl font-bold text-white mb-5">Kritik / Geciken Görevler</h3>
+            <h3 className="text-xl font-bold text-white mb-5">
+              Kritik / Geciken Görevler
+            </h3>
 
             <div className="space-y-3">
               {criticalList.length === 0 && (
@@ -471,20 +447,26 @@ function DashboardContent() {
                   key={r.id}
                   className={
                     isLate(r)
-                      ? "border rounded-xl p-4 bg-red-900/30"
-                      : "border rounded-xl p-4 bg-yellow-900/30"
+                      ? "border border-red-800 rounded-xl p-4 bg-red-900/30"
+                      : "border border-yellow-800 rounded-xl p-4 bg-yellow-900/30"
                   }
                 >
                   <div className="flex justify-between">
                     <h4 className="font-semibold text-white">{r.decision}</h4>
-
-                    <span className={isLate(r) ? "text-red-500 font-bold" : "text-yellow-400 font-bold"}>
+                    <span
+                      className={
+                        isLate(r)
+                          ? "text-red-500 font-bold"
+                          : "text-yellow-400 font-bold"
+                      }
+                    >
                       {isLate(r) ? "GECİKTİ" : r.priority}
                     </span>
                   </div>
 
                   <p className="text-sm text-slate-300 mt-2">
-                    Sorumlu: {r.responsible} | Birim: {r.department} | Termin: {r.deadline}
+                    Sorumlu: {r.responsible} | Birim: {r.department} | Termin:{" "}
+                    {r.deadline}
                   </p>
                 </div>
               ))}
@@ -492,45 +474,59 @@ function DashboardContent() {
           </div>
 
           <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6">
-            <h3 className="text-xl font-bold text-white mb-5">Hızlı İşlemler</h3>
+            <h3 className="text-xl font-bold text-white mb-5">
+              Hızlı İşlemler
+            </h3>
 
             <div className="space-y-3">
               {canEdit && (
-                <button onClick={() => router.push("/meeting")} className="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-xl font-semibold">
-                  Yeni Karar Gir
-                </button>
+                <ActionButton text="Yeni Karar Gir" onClick={() => router.push("/meeting")} color="bg-blue-600 hover:bg-blue-700" />
               )}
 
-              <button onClick={() => router.push("/decision-records")} className="w-full bg-slate-700 hover:bg-slate-600 py-3 rounded-xl font-semibold">
-                Karar Kayıtları
-              </button>
+              <ActionButton text="Karar Kayıtları" onClick={() => router.push("/decision-records")} color="bg-slate-700 hover:bg-slate-600" />
 
               {canEdit && (
-                <button onClick={() => router.push("/proje-siparis")} className="w-full bg-indigo-600 hover:bg-indigo-700 py-3 rounded-xl font-semibold">
-                  Proje Sipariş Girişi
-                </button>
+                <ActionButton text="Proje Sipariş Girişi" onClick={() => router.push("/proje-siparis")} color="bg-indigo-600 hover:bg-indigo-700" />
               )}
 
-              <button onClick={() => router.push("/proje-siparis-kayitlari")} className="w-full bg-cyan-600 hover:bg-cyan-700 py-3 rounded-xl font-semibold">
-                Proje Sipariş Kayıtları
-              </button>
+              <ActionButton text="Proje Sipariş Kayıtları" onClick={() => router.push("/proje-siparis-kayitlari")} color="bg-cyan-600 hover:bg-cyan-700" />
 
               {role === "Yönetici" && (
-                <button onClick={() => router.push("/settings")} className="w-full bg-green-600 hover:bg-green-700 py-3 rounded-xl font-semibold">
-                  Ayarlar
-                </button>
+                <>
+                  <ActionButton text="Ayarlar" onClick={() => router.push("/settings")} color="bg-green-600 hover:bg-green-700" />
+                  <ActionButton text="Mail Ayarları" onClick={() => router.push("/mail-settings")} color="bg-purple-600 hover:bg-purple-700" />
+                </>
               )}
 
               {canEdit && (
-                <button onClick={copyWhatsAppLateTasks} className="w-full bg-emerald-600 hover:bg-emerald-700 py-3 rounded-xl font-semibold">
-                  Gecikenleri WhatsApp Hazırla
-                </button>
+                <ActionButton text="Gecikenleri WhatsApp Hazırla" onClick={copyWhatsAppLateTasks} color="bg-emerald-600 hover:bg-emerald-700" />
               )}
             </div>
           </div>
         </div>
       </section>
     </main>
+  );
+}
+
+function MenuButton({
+  text,
+  onClick,
+  active = false,
+}: {
+  text: string;
+  onClick: () => void;
+  active?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full text-left px-4 py-3 rounded-xl ${
+        active ? "bg-slate-800" : "hover:bg-slate-800"
+      }`}
+    >
+      {text}
+    </button>
   );
 }
 
@@ -550,6 +546,55 @@ function KpiCard({
         {Number(value || 0).toLocaleString("tr-TR")}
       </h3>
     </div>
+  );
+}
+
+function ChartBox({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6">
+      <h3 className="text-xl font-bold text-white mb-6">{title}</h3>
+      <div className="w-full h-[420px]">{children}</div>
+    </div>
+  );
+}
+
+function ListBox({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6">
+      <h3 className="text-xl font-bold text-white mb-5">{title}</h3>
+      <div className="space-y-3">{children}</div>
+    </div>
+  );
+}
+
+function ActionButton({
+  text,
+  onClick,
+  color,
+}: {
+  text: string;
+  onClick: () => void;
+  color: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full ${color} py-3 rounded-xl font-semibold text-white`}
+    >
+      {text}
+    </button>
   );
 }
 
