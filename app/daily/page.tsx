@@ -56,6 +56,7 @@ export default function DailyPage() {
 
     try {
       lastItemNo = await getLastItemNoForDate();
+      alert("Bulunan son madde no: " + lastItemNo);
     } catch (err: any) {
       alert("Son madde numarası alınamadı: " + err.message);
       return;

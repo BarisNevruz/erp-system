@@ -21,13 +21,23 @@ type ProjectOrder = {
   tamamlanma_yuzdesi: number;
 };
 
+type MailContact = {
+  id: string;
+  name: string;
+  email: string;
+  active: boolean;
+};
+
 export default function ProjeSiparisKayitlariPage() {
   const [kayitlar, setKayitlar] = useState<ProjectOrder[]>([]);
   const [arama, setArama] = useState("");
   const [duzenlenen, setDuzenlenen] = useState<ProjectOrder | null>(null);
+  const [mailListesi, setMailListesi] = useState<MailContact[]>([]);
+  const [selectedMailIds, setSelectedMailIds] = useState<string[]>([]);
 
   useEffect(() => {
     verileriGetir();
+    mailGetir();
   }, []);
 
   async function verileriGetir() {
@@ -44,9 +54,23 @@ export default function ProjeSiparisKayitlariPage() {
     setKayitlar(data || []);
   }
 
+  async function mailGetir() {
+    const { data, error } = await supabase
+      .from("mail_contacts")
+      .select("*")
+      .eq("active", true)
+      .order("name", { ascending: true });
+
+    if (error) {
+      alert("Mail listesi alınamadı: " + error.message);
+      return;
+    }
+
+    setMailListesi(data || []);
+  }
+
   async function sil(id: string) {
-    const onay = confirm("Bu proje siparişini silmek istiyor musunuz?");
-    if (!onay) return;
+    if (!confirm("Bu proje siparişini silmek istiyor musunuz?")) return;
 
     const { error } = await supabase
       .from("project_orders")
@@ -65,6 +89,14 @@ export default function ProjeSiparisKayitlariPage() {
   async function guncelle() {
     if (!duzenlenen) return;
 
+    const toplam =
+      Number(duzenlenen.siyah_sac_kg || 0) +
+      Number(duzenlenen.hardox_kg || 0) +
+      Number(duzenlenen.mc700_strenx_kg || 0) +
+      Number(duzenlenen.aluminyum_kg || 0) +
+      Number(duzenlenen.crni_kg || 0) +
+      Number(duzenlenen.talasli_imalat_kg || 0);
+
     const { error } = await supabase
       .from("project_orders")
       .update({
@@ -79,6 +111,7 @@ export default function ProjeSiparisKayitlariPage() {
         aluminyum_kg: Number(duzenlenen.aluminyum_kg || 0),
         crni_kg: Number(duzenlenen.crni_kg || 0),
         talasli_imalat_kg: Number(duzenlenen.talasli_imalat_kg || 0),
+        toplam_malzeme_kg: toplam,
         musteri_adi: duzenlenen.musteri_adi,
         tamamlanma_yuzdesi: Number(duzenlenen.tamamlanma_yuzdesi || 0),
       })
@@ -120,9 +153,108 @@ export default function ProjeSiparisKayitlariPage() {
   function geciktiMi(k: ProjectOrder) {
     const bugun = new Date();
     const termin = new Date(k.termin_tarihi);
+
     bugun.setHours(0, 0, 0, 0);
     termin.setHours(0, 0, 0, 0);
+
     return termin < bugun && Number(k.tamamlanma_yuzdesi || 0) < 100;
+  }
+
+  function gecikmeGunuHesapla(terminTarihi: string) {
+    const bugun = new Date();
+    const termin = new Date(terminTarihi);
+
+    bugun.setHours(0, 0, 0, 0);
+    termin.setHours(0, 0, 0, 0);
+
+    const farkMs = bugun.getTime() - termin.getTime();
+    return Math.floor(farkMs / (1000 * 60 * 60 * 24));
+  }
+
+  async function gecikenSiparisMailiGonder() {
+    const secilenMailler = mailListesi
+      .filter((m) => selectedMailIds.includes(m.id))
+      .map((m) => m.email);
+
+    if (secilenMailler.length === 0) {
+      alert("Lütfen en az bir mail alıcısı seçiniz.");
+      return;
+    }
+
+    const gecikenler = kayitlar.filter(geciktiMi);
+
+    if (gecikenler.length === 0) {
+      alert("Geciken sipariş bulunmuyor.");
+      return;
+    }
+
+    let body = `
+      <h2 style="color:red;">KRİTİK - GECİKEN PROJE SİPARİŞLERİ</h2>
+      <p>Aşağıdaki proje siparişlerinin termin tarihi geçmiştir.</p>
+
+      <table border="1" cellpadding="8" cellspacing="0"
+        style="border-collapse:collapse;width:100%;font-family:Arial;font-size:13px;">
+        <thead>
+          <tr style="background:#fee2e2;color:#991b1b;">
+            <th>Müşteri</th>
+            <th>Proje</th>
+            <th>Ürün Tipi</th>
+            <th>Adet</th>
+            <th>Termin</th>
+            <th>Gecikme</th>
+            <th>Tamamlanma</th>
+            <th>Toplam KG</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    gecikenler.forEach((k) => {
+      body += `
+        <tr>
+          <td>${k.musteri_adi || ""}</td>
+          <td>${k.proje_adi || ""}</td>
+          <td>${k.urun_tipi || ""}</td>
+          <td>${k.urun_adeti || 0}</td>
+          <td>${k.termin_tarihi || ""}</td>
+          <td style="color:red;font-weight:bold;">
+            ${gecikmeGunuHesapla(k.termin_tarihi)} gün
+          </td>
+          <td>%${k.tamamlanma_yuzdesi || 0}</td>
+          <td>${Number(k.toplam_malzeme_kg || 0).toLocaleString("tr-TR")} kg</td>
+        </tr>
+      `;
+    });
+
+    body += `
+        </tbody>
+      </table>
+
+      <p style="margin-top:20px;color:red;font-weight:bold;">
+        Lütfen geciken siparişler için aksiyon durumunu güncelleyiniz.
+      </p>
+    `;
+
+    const response = await fetch("/api/send-mail", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        to: secilenMailler.join(";"),
+        cc: "",
+        subject: "KRİTİK - Geciken Proje Siparişleri",
+        body,
+      }),
+    });
+
+    if (!response.ok) {
+      const hata = await response.text();
+      alert("Mail gönderilemedi: " + hata);
+      return;
+    }
+
+    alert("Geciken sipariş maili gönderildi.");
   }
 
   return (
@@ -136,7 +268,11 @@ export default function ProjeSiparisKayitlariPage() {
           <Kpi title="Toplam Sipariş" value={filtreliKayitlar.length} />
           <Kpi title="Toplam Ürün Adeti" value={toplamUrunAdeti} />
           <Kpi title="Genel Toplam KG" value={genelToplam} />
-          <Kpi title="Geciken Sipariş" value={filtreliKayitlar.filter(geciktiMi).length} danger />
+          <Kpi
+            title="Geciken Sipariş"
+            value={filtreliKayitlar.filter(geciktiMi).length}
+            danger
+          />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mt-5">
@@ -148,11 +284,56 @@ export default function ProjeSiparisKayitlariPage() {
           <Kpi title="Talaşlı KG" value={toplamTalasli} />
         </div>
 
+        <div className="bg-slate-100 rounded-xl p-4 mt-8 mb-4">
+          <label className="font-semibold block mb-3">
+            Mail Alıcıları
+          </label>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {mailListesi.map((m) => (
+              <label key={m.id} className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={selectedMailIds.includes(m.id)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedMailIds([...selectedMailIds, m.id]);
+                    } else {
+                      setSelectedMailIds(
+                        selectedMailIds.filter((x) => x !== m.id)
+                      );
+                    }
+                  }}
+                />
+
+                <span>
+                  {m.name} - {m.email}
+                </span>
+              </label>
+            ))}
+
+            {mailListesi.length === 0 && (
+              <p className="text-slate-500">
+                Aktif mail kaydı bulunamadı.
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="flex justify-end mt-4 mb-4">
+          <button
+            onClick={gecikenSiparisMailiGonder}
+            className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl font-bold"
+          >
+            Geciken Sipariş Maili Gönder
+          </button>
+        </div>
+
         <input
           value={arama}
           onChange={(e) => setArama(e.target.value)}
           placeholder="Müşteri, proje adı veya ürün tipi ara..."
-          className="w-full border rounded-xl px-4 py-3 mt-8"
+          className="w-full border rounded-xl px-4 py-3 mt-4"
         />
 
         <div className="overflow-x-auto mt-8">
@@ -180,7 +361,10 @@ export default function ProjeSiparisKayitlariPage() {
 
             <tbody>
               {filtreliKayitlar.map((k) => (
-                <tr key={k.id} className={geciktiMi(k) ? "bg-red-50" : "border-b"}>
+                <tr
+                  key={k.id}
+                  className={geciktiMi(k) ? "bg-red-50" : "border-b"}
+                >
                   <Td>
                     <div className="flex gap-2">
                       <button
@@ -189,6 +373,7 @@ export default function ProjeSiparisKayitlariPage() {
                       >
                         Düzenle
                       </button>
+
                       <button
                         onClick={() => sil(k.id)}
                         className="bg-red-600 text-white px-3 py-1 rounded-lg"
@@ -197,7 +382,15 @@ export default function ProjeSiparisKayitlariPage() {
                       </button>
                     </div>
                   </Td>
-                  <Td>{geciktiMi(k) ? <span className="text-red-600 font-bold">Gecikti</span> : <span className="text-green-600 font-semibold">Normal</span>}</Td>
+
+                  <Td>
+                    {geciktiMi(k) ? (
+                      <span className="text-red-600 font-bold">Gecikti</span>
+                    ) : (
+                      <span className="text-green-600 font-semibold">Normal</span>
+                    )}
+                  </Td>
+
                   <Td>{k.proje_siparis_tarihi}</Td>
                   <Td>{k.termin_tarihi}</Td>
                   <Td>{k.musteri_adi}</Td>
@@ -241,10 +434,17 @@ export default function ProjeSiparisKayitlariPage() {
             </div>
 
             <div className="flex justify-end gap-3 mt-6">
-              <button onClick={() => setDuzenlenen(null)} className="px-6 py-3 rounded-xl bg-slate-200">
+              <button
+                onClick={() => setDuzenlenen(null)}
+                className="px-6 py-3 rounded-xl bg-slate-200"
+              >
                 Vazgeç
               </button>
-              <button onClick={guncelle} className="px-6 py-3 rounded-xl bg-blue-600 text-white">
+
+              <button
+                onClick={guncelle}
+                className="px-6 py-3 rounded-xl bg-blue-600 text-white"
+              >
                 Güncelle
               </button>
             </div>
@@ -259,7 +459,15 @@ function formatKg(value: number) {
   return `${Number(value || 0).toLocaleString("tr-TR")} kg`;
 }
 
-function Kpi({ title, value, danger = false }: { title: string; value: number; danger?: boolean }) {
+function Kpi({
+  title,
+  value,
+  danger = false,
+}: {
+  title: string;
+  value: number;
+  danger?: boolean;
+}) {
   return (
     <div className={`rounded-2xl p-5 ${danger ? "bg-red-100" : "bg-slate-100"}`}>
       <p className={danger ? "text-red-600" : "text-slate-500"}>{title}</p>
@@ -274,14 +482,29 @@ function Th({ children }: { children: React.ReactNode }) {
   return <th className="p-3 text-left whitespace-nowrap">{children}</th>;
 }
 
-function Td({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+function Td({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return <td className={`p-3 whitespace-nowrap ${className}`}>{children}</td>;
 }
 
-function EditInput({ label, name, value, onChange, type = "text" }: any) {
+function EditInput({
+  label,
+  name,
+  value,
+  onChange,
+  type = "text",
+}: any) {
   return (
     <div>
-      <label className="block text-sm font-semibold text-slate-700 mb-1">{label}</label>
+      <label className="block text-sm font-semibold text-slate-700 mb-1">
+        {label}
+      </label>
+
       <input
         name={name}
         type={type}
