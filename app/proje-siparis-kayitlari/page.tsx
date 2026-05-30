@@ -2,6 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
 
 type ProjectOrder = {
   id: string;
@@ -27,6 +38,8 @@ type MailContact = {
   email: string;
   active: boolean;
 };
+
+const COLORS = ["#2563eb", "#dc2626", "#16a34a", "#f59e0b", "#7c3aed", "#0891b2"];
 
 export default function ProjeSiparisKayitlariPage() {
   const [kayitlar, setKayitlar] = useState<ProjectOrder[]>([]);
@@ -150,6 +163,33 @@ export default function ProjeSiparisKayitlariPage() {
   const toplamTalasli = filtreliKayitlar.reduce((t, k) => t + Number(k.talasli_imalat_kg || 0), 0);
   const genelToplam = filtreliKayitlar.reduce((t, k) => t + Number(k.toplam_malzeme_kg || 0), 0);
 
+  const malzemeTonajData = [
+    { name: "Siyah Sac", kg: toplamSiyahSac },
+    { name: "Hardox", kg: toplamHardox },
+    { name: "MC700-Strenx", kg: toplamMc700 },
+    { name: "Alüminyum", kg: toplamAluminyum },
+    { name: "CrNi", kg: toplamCrni },
+    { name: "Talaşlı", kg: toplamTalasli },
+  ];
+
+  const musteriTonajData = Object.values(
+    filtreliKayitlar.reduce((acc: any, k) => {
+      const key = k.musteri_adi || "Belirsiz";
+      acc[key] = acc[key] || { name: key, kg: 0 };
+      acc[key].kg += Number(k.toplam_malzeme_kg || 0);
+      return acc;
+    }, {})
+  );
+
+  const urunTipiTonajData = Object.values(
+    filtreliKayitlar.reduce((acc: any, k) => {
+      const key = k.urun_tipi || "Belirsiz";
+      acc[key] = acc[key] || { name: key, kg: 0 };
+      acc[key].kg += Number(k.toplam_malzeme_kg || 0);
+      return acc;
+    }, {})
+  );
+
   function geciktiMi(k: ProjectOrder) {
     const bugun = new Date();
     const termin = new Date(k.termin_tarihi);
@@ -191,7 +231,6 @@ export default function ProjeSiparisKayitlariPage() {
     let body = `
       <h2 style="color:red;">KRİTİK - GECİKEN PROJE SİPARİŞLERİ</h2>
       <p>Aşağıdaki proje siparişlerinin termin tarihi geçmiştir.</p>
-
       <table border="1" cellpadding="8" cellspacing="0"
         style="border-collapse:collapse;width:100%;font-family:Arial;font-size:13px;">
         <thead>
@@ -229,7 +268,6 @@ export default function ProjeSiparisKayitlariPage() {
     body += `
         </tbody>
       </table>
-
       <p style="margin-top:20px;color:red;font-weight:bold;">
         Lütfen geciken siparişler için aksiyon durumunu güncelleyiniz.
       </p>
@@ -284,6 +322,49 @@ export default function ProjeSiparisKayitlariPage() {
           <Kpi title="Talaşlı KG" value={toplamTalasli} />
         </div>
 
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
+          <ChartCard title="Malzeme Bazlı Tonaj">
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={malzemeTonajData}>
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip formatter={(value) => `${Number(value).toLocaleString("tr-TR")} kg`} />
+                <Bar dataKey="kg" fill="#2563eb" />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
+
+          <ChartCard title="Müşteri Bazlı Tonaj">
+            <ResponsiveContainer width="100%" height={260}>
+              <PieChart>
+                <Pie
+                  data={musteriTonajData as any[]}
+                  dataKey="kg"
+                  nameKey="name"
+                  outerRadius={90}
+                  label
+                >
+                  {(musteriTonajData as any[]).map((_, index) => (
+                    <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => `${Number(value).toLocaleString("tr-TR")} kg`} />
+              </PieChart>
+            </ResponsiveContainer>
+          </ChartCard>
+
+          <ChartCard title="Ürün Tipi Bazlı Tonaj">
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={urunTipiTonajData as any[]}>
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip formatter={(value) => `${Number(value).toLocaleString("tr-TR")} kg`} />
+                <Bar dataKey="kg" fill="#16a34a" />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        </div>
+
         <div className="bg-slate-100 rounded-xl p-4 mt-8 mb-4">
           <label className="font-semibold block mb-3">
             Mail Alıcıları
@@ -306,9 +387,7 @@ export default function ProjeSiparisKayitlariPage() {
                   }}
                 />
 
-                <span>
-                  {m.name} - {m.email}
-                </span>
+                <span>{m.name} - {m.email}</span>
               </label>
             ))}
 
@@ -474,6 +553,21 @@ function Kpi({
       <p className={`text-2xl font-bold ${danger ? "text-red-700" : "text-slate-800"}`}>
         {Number(value || 0).toLocaleString("tr-TR")}
       </p>
+    </div>
+  );
+}
+
+function ChartCard({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="bg-slate-100 rounded-2xl p-5">
+      <h2 className="text-lg font-bold text-slate-800 mb-4">{title}</h2>
+      {children}
     </div>
   );
 }
