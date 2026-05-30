@@ -187,25 +187,57 @@ export default function ProjeSiparisKayitlariPage() {
   const hasMusteriData = musteriTonajData.some((x) => Number(x.kg || 0) > 0);
   const hasUrunData = urunTipiTonajData.some((x) => Number(x.kg || 0) > 0);
 
-  function geciktiMi(k: ProjectOrder) {
-    const bugun = new Date();
-    const termin = new Date(k.termin_tarihi);
-
-    bugun.setHours(0, 0, 0, 0);
-    termin.setHours(0, 0, 0, 0);
-
-    return termin < bugun && Number(k.tamamlanma_yuzdesi || 0) < 100;
-  }
-
-  function gecikmeGunuHesapla(terminTarihi: string) {
+  function kalanGunHesapla(terminTarihi: string) {
     const bugun = new Date();
     const termin = new Date(terminTarihi);
 
     bugun.setHours(0, 0, 0, 0);
     termin.setHours(0, 0, 0, 0);
 
-    const farkMs = bugun.getTime() - termin.getTime();
-    return Math.floor(farkMs / (1000 * 60 * 60 * 24));
+    const farkMs = termin.getTime() - bugun.getTime();
+    return Math.ceil(farkMs / (1000 * 60 * 60 * 24));
+  }
+
+  function geciktiMi(k: ProjectOrder) {
+    if (!k.termin_tarihi) return false;
+    return kalanGunHesapla(k.termin_tarihi) < 0 && Number(k.tamamlanma_yuzdesi || 0) < 100;
+  }
+
+  function yaklasiyorMu(k: ProjectOrder) {
+    if (!k.termin_tarihi) return false;
+    const kalanGun = kalanGunHesapla(k.termin_tarihi);
+    return kalanGun >= 0 && kalanGun <= 7 && Number(k.tamamlanma_yuzdesi || 0) < 100;
+  }
+
+  function satirRengi(k: ProjectOrder) {
+    if (geciktiMi(k)) return "bg-red-100 border-b border-red-300";
+    if (yaklasiyorMu(k)) return "bg-yellow-100 border-b border-yellow-300";
+    return "border-b";
+  }
+
+  function durumEtiketi(k: ProjectOrder) {
+    if (Number(k.tamamlanma_yuzdesi || 0) >= 100) {
+      return <span className="text-green-700 font-bold">Tamamlandı</span>;
+    }
+
+    if (geciktiMi(k)) {
+      return <span className="text-red-700 font-bold">Gecikti</span>;
+    }
+
+    if (yaklasiyorMu(k)) {
+      return (
+        <span className="text-yellow-700 font-bold">
+          Yaklaşıyor ({kalanGunHesapla(k.termin_tarihi)} gün)
+        </span>
+      );
+    }
+
+    return <span className="text-green-600 font-semibold">Normal</span>;
+  }
+
+  function gecikmeGunuHesapla(terminTarihi: string) {
+    const kalanGun = kalanGunHesapla(terminTarihi);
+    return kalanGun < 0 ? Math.abs(kalanGun) : 0;
   }
 
   async function gecikenSiparisMailiGonder() {
@@ -434,7 +466,7 @@ export default function ProjeSiparisKayitlariPage() {
 
             <tbody>
               {filtreliKayitlar.map((k) => (
-                <tr key={k.id} className={geciktiMi(k) ? "bg-red-50" : "border-b"}>
+                <tr key={k.id} className={satirRengi(k)}>
                   <Td>
                     <div className="flex gap-2">
                       <button onClick={() => setDuzenlenen(k)} className="bg-blue-600 text-white px-3 py-1 rounded-lg">
@@ -446,14 +478,7 @@ export default function ProjeSiparisKayitlariPage() {
                     </div>
                   </Td>
 
-                  <Td>
-                    {geciktiMi(k) ? (
-                      <span className="text-red-600 font-bold">Gecikti</span>
-                    ) : (
-                      <span className="text-green-600 font-semibold">Normal</span>
-                    )}
-                  </Td>
-
+                  <Td>{durumEtiketi(k)}</Td>
                   <Td>{k.proje_siparis_tarihi}</Td>
                   <Td>{k.termin_tarihi}</Td>
                   <Td>{k.musteri_adi}</Td>
