@@ -85,10 +85,7 @@ export default function ProjeSiparisKayitlariPage() {
   async function sil(id: string) {
     if (!confirm("Bu proje siparişini silmek istiyor musunuz?")) return;
 
-    const { error } = await supabase
-      .from("project_orders")
-      .delete()
-      .eq("id", id);
+    const { error } = await supabase.from("project_orders").delete().eq("id", id);
 
     if (error) {
       alert("Silme hatası: " + error.message);
@@ -142,11 +139,7 @@ export default function ProjeSiparisKayitlariPage() {
 
   function handleEditChange(e: any) {
     if (!duzenlenen) return;
-
-    setDuzenlenen({
-      ...duzenlenen,
-      [e.target.name]: e.target.value,
-    });
+    setDuzenlenen({ ...duzenlenen, [e.target.name]: e.target.value });
   }
 
   const filtreliKayitlar = kayitlar.filter((k) => {
@@ -166,7 +159,7 @@ export default function ProjeSiparisKayitlariPage() {
   const malzemeTonajData = [
     { name: "Siyah Sac", kg: toplamSiyahSac },
     { name: "Hardox", kg: toplamHardox },
-    { name: "MC700-Strenx", kg: toplamMc700 },
+    { name: "MC700", kg: toplamMc700 },
     { name: "Alüminyum", kg: toplamAluminyum },
     { name: "CrNi", kg: toplamCrni },
     { name: "Talaşlı", kg: toplamTalasli },
@@ -179,7 +172,7 @@ export default function ProjeSiparisKayitlariPage() {
       acc[key].kg += Number(k.toplam_malzeme_kg || 0);
       return acc;
     }, {})
-  );
+  ) as any[];
 
   const urunTipiTonajData = Object.values(
     filtreliKayitlar.reduce((acc: any, k) => {
@@ -188,7 +181,11 @@ export default function ProjeSiparisKayitlariPage() {
       acc[key].kg += Number(k.toplam_malzeme_kg || 0);
       return acc;
     }, {})
-  );
+  ) as any[];
+
+  const hasMalzemeData = malzemeTonajData.some((x) => Number(x.kg || 0) > 0);
+  const hasMusteriData = musteriTonajData.some((x) => Number(x.kg || 0) > 0);
+  const hasUrunData = urunTipiTonajData.some((x) => Number(x.kg || 0) > 0);
 
   function geciktiMi(k: ProjectOrder) {
     const bugun = new Date();
@@ -275,9 +272,7 @@ export default function ProjeSiparisKayitlariPage() {
 
     const response = await fetch("/api/send-mail", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         to: secilenMailler.join(";"),
         cc: "",
@@ -298,19 +293,13 @@ export default function ProjeSiparisKayitlariPage() {
   return (
     <main className="min-h-screen bg-slate-100 p-8">
       <div className="max-w-7xl mx-auto bg-white rounded-2xl shadow p-8">
-        <h1 className="text-3xl font-bold text-slate-800">
-          Proje Sipariş Kayıtları
-        </h1>
+        <h1 className="text-3xl font-bold text-slate-800">Proje Sipariş Kayıtları</h1>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8">
           <Kpi title="Toplam Sipariş" value={filtreliKayitlar.length} />
           <Kpi title="Toplam Ürün Adeti" value={toplamUrunAdeti} />
           <Kpi title="Genel Toplam KG" value={genelToplam} />
-          <Kpi
-            title="Geciken Sipariş"
-            value={filtreliKayitlar.filter(geciktiMi).length}
-            danger
-          />
+          <Kpi title="Geciken Sipariş" value={filtreliKayitlar.filter(geciktiMi).length} danger />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mt-5">
@@ -324,51 +313,61 @@ export default function ProjeSiparisKayitlariPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
           <ChartCard title="Malzeme Bazlı Tonaj">
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={malzemeTonajData}>
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip formatter={(value) => `${Number(value).toLocaleString("tr-TR")} kg`} />
-                <Bar dataKey="kg" fill="#2563eb" />
-              </BarChart>
-            </ResponsiveContainer>
+            {hasMalzemeData ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={malzemeTonajData} margin={{ top: 20, right: 20, left: 10, bottom: 80 }}>
+                  <XAxis dataKey="name" interval={0} angle={-35} textAnchor="end" height={80} tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip formatter={(value) => `${Number(value).toLocaleString("tr-TR")} kg`} />
+                  <Bar dataKey="kg" fill="#2563eb" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <EmptyChartText />
+            )}
           </ChartCard>
 
           <ChartCard title="Müşteri Bazlı Tonaj">
-            <ResponsiveContainer width="100%" height={260}>
-              <PieChart>
-                <Pie
-                  data={musteriTonajData as any[]}
-                  dataKey="kg"
-                  nameKey="name"
-                  outerRadius={90}
-                  label
-                >
-                  {(musteriTonajData as any[]).map((_, index) => (
-                    <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value) => `${Number(value).toLocaleString("tr-TR")} kg`} />
-              </PieChart>
-            </ResponsiveContainer>
+            {hasMusteriData ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={musteriTonajData}
+                    dataKey="kg"
+                    nameKey="name"
+                    outerRadius={95}
+                    label={({ name }) => String(name).slice(0, 14)}
+                  >
+                    {musteriTonajData.map((_, index) => (
+                      <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => `${Number(value).toLocaleString("tr-TR")} kg`} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <EmptyChartText />
+            )}
           </ChartCard>
 
           <ChartCard title="Ürün Tipi Bazlı Tonaj">
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={urunTipiTonajData as any[]}>
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip formatter={(value) => `${Number(value).toLocaleString("tr-TR")} kg`} />
-                <Bar dataKey="kg" fill="#16a34a" />
-              </BarChart>
-            </ResponsiveContainer>
+            {hasUrunData ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={urunTipiTonajData} margin={{ top: 20, right: 20, left: 10, bottom: 80 }}>
+                  <XAxis dataKey="name" interval={0} angle={-35} textAnchor="end" height={80} tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip formatter={(value) => `${Number(value).toLocaleString("tr-TR")} kg`} />
+                  <Bar dataKey="kg" fill="#16a34a" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <EmptyChartText />
+            )}
           </ChartCard>
         </div>
 
         <div className="bg-slate-100 rounded-xl p-4 mt-8 mb-4">
-          <label className="font-semibold block mb-3">
-            Mail Alıcıları
-          </label>
+          <label className="font-semibold block mb-3">Mail Alıcıları</label>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {mailListesi.map((m) => (
@@ -380,21 +379,16 @@ export default function ProjeSiparisKayitlariPage() {
                     if (e.target.checked) {
                       setSelectedMailIds([...selectedMailIds, m.id]);
                     } else {
-                      setSelectedMailIds(
-                        selectedMailIds.filter((x) => x !== m.id)
-                      );
+                      setSelectedMailIds(selectedMailIds.filter((x) => x !== m.id));
                     }
                   }}
                 />
-
                 <span>{m.name} - {m.email}</span>
               </label>
             ))}
 
             {mailListesi.length === 0 && (
-              <p className="text-slate-500">
-                Aktif mail kaydı bulunamadı.
-              </p>
+              <p className="text-slate-500">Aktif mail kaydı bulunamadı.</p>
             )}
           </div>
         </div>
@@ -440,23 +434,13 @@ export default function ProjeSiparisKayitlariPage() {
 
             <tbody>
               {filtreliKayitlar.map((k) => (
-                <tr
-                  key={k.id}
-                  className={geciktiMi(k) ? "bg-red-50" : "border-b"}
-                >
+                <tr key={k.id} className={geciktiMi(k) ? "bg-red-50" : "border-b"}>
                   <Td>
                     <div className="flex gap-2">
-                      <button
-                        onClick={() => setDuzenlenen(k)}
-                        className="bg-blue-600 text-white px-3 py-1 rounded-lg"
-                      >
+                      <button onClick={() => setDuzenlenen(k)} className="bg-blue-600 text-white px-3 py-1 rounded-lg">
                         Düzenle
                       </button>
-
-                      <button
-                        onClick={() => sil(k.id)}
-                        className="bg-red-600 text-white px-3 py-1 rounded-lg"
-                      >
+                      <button onClick={() => sil(k.id)} className="bg-red-600 text-white px-3 py-1 rounded-lg">
                         Sil
                       </button>
                     </div>
@@ -513,17 +497,10 @@ export default function ProjeSiparisKayitlariPage() {
             </div>
 
             <div className="flex justify-end gap-3 mt-6">
-              <button
-                onClick={() => setDuzenlenen(null)}
-                className="px-6 py-3 rounded-xl bg-slate-200"
-              >
+              <button onClick={() => setDuzenlenen(null)} className="px-6 py-3 rounded-xl bg-slate-200">
                 Vazgeç
               </button>
-
-              <button
-                onClick={guncelle}
-                className="px-6 py-3 rounded-xl bg-blue-600 text-white"
-              >
+              <button onClick={guncelle} className="px-6 py-3 rounded-xl bg-blue-600 text-white">
                 Güncelle
               </button>
             </div>
@@ -538,15 +515,15 @@ function formatKg(value: number) {
   return `${Number(value || 0).toLocaleString("tr-TR")} kg`;
 }
 
-function Kpi({
-  title,
-  value,
-  danger = false,
-}: {
-  title: string;
-  value: number;
-  danger?: boolean;
-}) {
+function EmptyChartText() {
+  return (
+    <div className="h-[360px] flex items-center justify-center text-slate-500 text-sm">
+      Grafik için tonaj verisi yok.
+    </div>
+  );
+}
+
+function Kpi({ title, value, danger = false }: { title: string; value: number; danger?: boolean }) {
   return (
     <div className={`rounded-2xl p-5 ${danger ? "bg-red-100" : "bg-slate-100"}`}>
       <p className={danger ? "text-red-600" : "text-slate-500"}>{title}</p>
@@ -557,17 +534,11 @@ function Kpi({
   );
 }
 
-function ChartCard({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-slate-100 rounded-2xl p-5">
+    <div className="bg-slate-100 rounded-2xl p-5 min-h-[430px]">
       <h2 className="text-lg font-bold text-slate-800 mb-4">{title}</h2>
-      {children}
+      <div className="w-full h-[360px]">{children}</div>
     </div>
   );
 }
@@ -576,29 +547,14 @@ function Th({ children }: { children: React.ReactNode }) {
   return <th className="p-3 text-left whitespace-nowrap">{children}</th>;
 }
 
-function Td({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
+function Td({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <td className={`p-3 whitespace-nowrap ${className}`}>{children}</td>;
 }
 
-function EditInput({
-  label,
-  name,
-  value,
-  onChange,
-  type = "text",
-}: any) {
+function EditInput({ label, name, value, onChange, type = "text" }: any) {
   return (
     <div>
-      <label className="block text-sm font-semibold text-slate-700 mb-1">
-        {label}
-      </label>
-
+      <label className="block text-sm font-semibold text-slate-700 mb-1">{label}</label>
       <input
         name={name}
         type={type}
