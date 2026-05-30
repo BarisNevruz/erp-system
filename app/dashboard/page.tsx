@@ -349,8 +349,8 @@ function DashboardContent() {
                   nameKey="name"
                   outerRadius={110}
                   label={({ name, percent }) =>
-                    `${name} ${(percent * 100).toFixed(0)}%`
-                  }
+  `${name} ${(((percent ?? 0) as number) * 100).toFixed(0)}%`
+}
                 >
                   {statusChart.map((entry, index) => (
                     <Cell key={index} fill={COLORS[index % COLORS.length]} />
