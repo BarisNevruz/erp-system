@@ -133,7 +133,22 @@ function DashboardContent() {
 
     return termin < today && Number(p.tamamlanma_yuzdesi || 0) < 100;
   }
+function isProjectApproaching(p: ProjectOrder) {
+  if (!p.termin_tarihi) return false;
+  if (Number(p.tamamlanma_yuzdesi || 0) >= 100) return false;
 
+  const today = new Date();
+  const termin = new Date(p.termin_tarihi);
+
+  today.setHours(0, 0, 0, 0);
+  termin.setHours(0, 0, 0, 0);
+
+  const diffDays = Math.ceil(
+    (termin.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  return diffDays >= 0 && diffDays <= 7;
+}
   function copyWhatsAppLateTasks() {
     const waGroups = JSON.parse(
       localStorage.getItem("erp_whatsapp_groups") || "[]"
@@ -225,7 +240,21 @@ function DashboardContent() {
     toplamTalasli;
 
   const gecikenSiparisler = projectOrders.filter((x) => isProjectLate(x));
+const yaklasanSiparisler = projectOrders.filter((x) =>
+  isProjectApproaching(x)
+);
 
+const buAySiparisler = projectOrders.filter((x) => {
+  if (!x.termin_tarihi) return false;
+
+  const today = new Date();
+  const termin = new Date(x.termin_tarihi);
+
+  return (
+    termin.getFullYear() === today.getFullYear() &&
+    termin.getMonth() === today.getMonth()
+  );
+});
   const statusChart = [
     { name: "Bekleyen", value: waiting },
     { name: "Tamamlanan", value: completed },
@@ -328,6 +357,17 @@ function DashboardContent() {
             <KpiCard title="Genel Toplam KG" value={Math.round(genelToplamKg)} color="bg-emerald-600" />
             <KpiCard title="Siyah Sac KG" value={Math.round(toplamSiyahSac)} color="bg-slate-600" />
             <KpiCard title="Geciken Sipariş" value={gecikenSiparisler.length} color="bg-red-700" />
+            <KpiCard
+  title="Termin Yaklaşan"
+  value={yaklasanSiparisler.length}
+  color="bg-yellow-600"
+/>
+
+<KpiCard
+  title="Bu Ay Termin"
+  value={buAySiparisler.length}
+  color="bg-blue-700"
+/>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-5 gap-5 mt-5">
