@@ -1,5 +1,5 @@
 "use client";
-
+import Sidebar from "@/components/Sidebar";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 
@@ -138,7 +138,14 @@ export default function DailyPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-900 text-white p-8">
+  <main className="min-h-screen bg-slate-100 flex">
+    <Sidebar
+      fullName="Barış Nevruz"
+      role="Yönetici"
+    />
+
+    <section className="flex-1 bg-slate-100 p-8 overflow-x-hidden">
+    
       <div className="bg-slate-800 rounded-2xl p-8 mb-6">
         <h1 className="text-3xl font-bold">
           Günlük Faaliyet Giriş Ekranı
@@ -207,7 +214,8 @@ export default function DailyPage() {
             ))}
           </tbody>
         </table>
-      </div>
-    </main>
-  );
+         </div>
+    </section>
+  </main>
+);
 }

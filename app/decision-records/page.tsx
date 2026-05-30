@@ -1,5 +1,5 @@
 "use client";
-
+import Sidebar from "@/components/Sidebar";
 import { useEffect, useState } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -316,7 +316,13 @@ export default function DecisionRecordsPage() {
   );
 
   return (
-    <main className="min-h-screen bg-slate-900 text-white p-8">
+  <main className="min-h-screen bg-slate-100 flex">
+    <Sidebar
+      fullName="Barış Nevruz"
+      role="Yönetici"
+    />
+
+    <section className="flex-1 p-8 overflow-x-hidden">
 
       <div className="bg-slate-800 rounded-2xl p-6 mb-6">
 
@@ -500,7 +506,7 @@ export default function DecisionRecordsPage() {
         </table>
 
       </div>
-
-    </main>
-  );
+    </section>
+  </main>
+);
 }

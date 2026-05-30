@@ -1,5 +1,5 @@
 "use client";
-
+import Sidebar from "@/components/Sidebar";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import {
@@ -323,9 +323,12 @@ export default function ProjeSiparisKayitlariPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 p-8">
+    <main className="min-h-screen bg-slate-100 flex">
+  <Sidebar fullName="Barış Nevruz" role="Yönetici" />
+
+  <section className="flex-1 bg-slate-100 p-8 overflow-x-hidden">
       <div className="max-w-7xl mx-auto bg-white rounded-2xl shadow p-8">
-        <h1 className="text-3xl font-bold text-slate-800">Proje Sipariş Kayıtları</h1>
+        <h1 className="text-3xl font-bold text-white">Proje Sipariş Kayıtları</h1>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8">
           <Kpi title="Toplam Sipariş" value={filtreliKayitlar.length} />
@@ -420,7 +423,7 @@ export default function ProjeSiparisKayitlariPage() {
             ))}
 
             {mailListesi.length === 0 && (
-              <p className="text-slate-500">Aktif mail kaydı bulunamadı.</p>
+              <p className="text-slate-300">Aktif mail kaydı bulunamadı.</p>
             )}
           </div>
         </div>
@@ -532,7 +535,8 @@ export default function ProjeSiparisKayitlariPage() {
           </div>
         </div>
       )}
-    </main>
+    </section>
+</main>
   );
 }
 
@@ -542,7 +546,7 @@ function formatKg(value: number) {
 
 function EmptyChartText() {
   return (
-    <div className="h-[360px] flex items-center justify-center text-slate-500 text-sm">
+    <div className="h-[360px] flex items-center justify-center text-slate-300 text-sm">
       Grafik için tonaj verisi yok.
     </div>
   );
@@ -551,8 +555,8 @@ function EmptyChartText() {
 function Kpi({ title, value, danger = false }: { title: string; value: number; danger?: boolean }) {
   return (
     <div className={`rounded-2xl p-5 ${danger ? "bg-red-100" : "bg-slate-100"}`}>
-      <p className={danger ? "text-red-600" : "text-slate-500"}>{title}</p>
-      <p className={`text-2xl font-bold ${danger ? "text-red-700" : "text-slate-800"}`}>
+      <p className={danger ? "text-red-600" : "text-slate-300"}>{title}</p>
+      <p className={`text-2xl font-bold ${danger ? "text-red-700" : "text-white"}`}>
         {Number(value || 0).toLocaleString("tr-TR")}
       </p>
     </div>
@@ -562,7 +566,7 @@ function Kpi({ title, value, danger = false }: { title: string; value: number; d
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="bg-slate-100 rounded-2xl p-5 min-h-[430px]">
-      <h2 className="text-lg font-bold text-slate-800 mb-4">{title}</h2>
+      <h2 className="text-lg font-bold text-white mb-4">{title}</h2>
       <div className="w-full h-[360px]">{children}</div>
     </div>
   );
@@ -579,7 +583,7 @@ function Td({ children, className = "" }: { children: React.ReactNode; className
 function EditInput({ label, name, value, onChange, type = "text" }: any) {
   return (
     <div>
-      <label className="block text-sm font-semibold text-slate-700 mb-1">{label}</label>
+      <label className="block text-sm font-semibold text-whitetext-slate-200 mb-1">{label}</label>
       <input
         name={name}
         type={type}

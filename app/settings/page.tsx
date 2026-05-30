@@ -1,5 +1,5 @@
 "use client";
-
+import Sidebar from "@/components/Sidebar";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
@@ -306,7 +306,13 @@ export default function SettingsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-900 text-white p-8">
+  <main className="min-h-screen bg-slate-100 flex">
+    <Sidebar
+      fullName="Barış Nevruz"
+      role="Yönetici"
+    />
+
+    <section className="flex-1 p-8 overflow-x-hidden">
       <div className="bg-slate-800 rounded-2xl p-8 mb-6">
         <h1 className="text-3xl font-bold">Ayarlar</h1>
         <p className="text-slate-300 mt-2">
@@ -467,6 +473,7 @@ export default function SettingsPage() {
           </Table>
         </Panel>
       </div>
+      </section>
     </main>
   );
 }
@@ -486,11 +493,15 @@ function Table({ headers, children }: any) {
       <thead className="bg-slate-950">
         <tr>
           {headers.map((h: string) => (
-            <th key={h} className="border p-2">{h}</th>
+            <th key={h} className="border p-2">
+              {h}
+            </th>
           ))}
         </tr>
       </thead>
+
       <tbody>{children}</tbody>
     </table>
+    
   );
 }

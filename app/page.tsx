@@ -45,11 +45,11 @@ export default function Home() {
         </div>
 
         <div className="bg-white rounded-2xl shadow p-8">
-          <h2 className="text-4xl font-bold text-slate-800">
+          <h2 className="text-4xl font-bold text-white">
             Barış Nevruz Yönetim Paneli
           </h2>
 
-          <p className="text-slate-500 mt-2 text-lg">
+          <p className="text-slate-300 mt-2 text-lg">
             Toplantı kararları, görev takibi, günlük faaliyet, proje sipariş takibi ve WhatsApp rapor sistemi
           </p>
 
@@ -105,8 +105,8 @@ function HomeCard({
       href={href}
       className="bg-slate-50 border border-slate-200 rounded-2xl p-6 hover:shadow-lg transition"
     >
-      <h3 className="text-xl font-bold text-slate-800">{title}</h3>
-      <p className="text-slate-500 mt-2">{desc}</p>
+      <h3 className="text-xl font-bold text-white">{title}</h3>
+      <p className="text-slate-300 mt-2">{desc}</p>
     </Link>
   );
 }

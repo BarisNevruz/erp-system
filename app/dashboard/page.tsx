@@ -1,9 +1,10 @@
 "use client";
 
-import { SessionProvider, signOut, useSession } from "next-auth/react";
+import { SessionProvider, useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import Sidebar from "@/components/Sidebar";
 
 import {
   BarChart,
@@ -124,6 +125,7 @@ function DashboardContent() {
 
   function isProjectLate(p: ProjectOrder) {
     if (!p.termin_tarihi) return false;
+    if (Number(p.tamamlanma_yuzdesi || 0) >= 100) return false;
 
     const today = new Date();
     const termin = new Date(p.termin_tarihi);
@@ -131,24 +133,26 @@ function DashboardContent() {
     today.setHours(0, 0, 0, 0);
     termin.setHours(0, 0, 0, 0);
 
-    return termin < today && Number(p.tamamlanma_yuzdesi || 0) < 100;
+    return termin < today;
   }
-function isProjectApproaching(p: ProjectOrder) {
-  if (!p.termin_tarihi) return false;
-  if (Number(p.tamamlanma_yuzdesi || 0) >= 100) return false;
 
-  const today = new Date();
-  const termin = new Date(p.termin_tarihi);
+  function isProjectApproaching(p: ProjectOrder) {
+    if (!p.termin_tarihi) return false;
+    if (Number(p.tamamlanma_yuzdesi || 0) >= 100) return false;
 
-  today.setHours(0, 0, 0, 0);
-  termin.setHours(0, 0, 0, 0);
+    const today = new Date();
+    const termin = new Date(p.termin_tarihi);
 
-  const diffDays = Math.ceil(
-    (termin.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-  );
+    today.setHours(0, 0, 0, 0);
+    termin.setHours(0, 0, 0, 0);
 
-  return diffDays >= 0 && diffDays <= 7;
-}
+    const diffDays = Math.ceil(
+      (termin.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    return diffDays >= 0 && diffDays <= 7;
+  }
+
   function copyWhatsAppLateTasks() {
     const waGroups = JSON.parse(
       localStorage.getItem("erp_whatsapp_groups") || "[]"
@@ -201,6 +205,7 @@ function isProjectApproaching(p: ProjectOrder) {
   ).length;
 
   const toplamSiparis = projectOrders.length;
+
   const toplamUrunAdeti = projectOrders.reduce(
     (t, x) => t + Number(x.urun_adeti || 0),
     0
@@ -210,22 +215,27 @@ function isProjectApproaching(p: ProjectOrder) {
     (t, x) => t + Number(x.siyah_sac_kg || 0),
     0
   );
+
   const toplamHardox = projectOrders.reduce(
     (t, x) => t + Number(x.hardox_kg || 0),
     0
   );
+
   const toplamMc700 = projectOrders.reduce(
     (t, x) => t + Number(x.mc700_strenx_kg || 0),
     0
   );
+
   const toplamAluminyum = projectOrders.reduce(
     (t, x) => t + Number(x.aluminyum_kg || 0),
     0
   );
+
   const toplamCrni = projectOrders.reduce(
     (t, x) => t + Number(x.crni_kg || 0),
     0
   );
+
   const toplamTalasli = projectOrders.reduce(
     (t, x) => t + Number(x.talasli_imalat_kg || 0),
     0
@@ -240,21 +250,22 @@ function isProjectApproaching(p: ProjectOrder) {
     toplamTalasli;
 
   const gecikenSiparisler = projectOrders.filter((x) => isProjectLate(x));
-const yaklasanSiparisler = projectOrders.filter((x) =>
-  isProjectApproaching(x)
-);
-
-const buAySiparisler = projectOrders.filter((x) => {
-  if (!x.termin_tarihi) return false;
-
-  const today = new Date();
-  const termin = new Date(x.termin_tarihi);
-
-  return (
-    termin.getFullYear() === today.getFullYear() &&
-    termin.getMonth() === today.getMonth()
+  const yaklasanSiparisler = projectOrders.filter((x) =>
+    isProjectApproaching(x)
   );
-});
+
+  const buAySiparisler = projectOrders.filter((x) => {
+    if (!x.termin_tarihi) return false;
+
+    const today = new Date();
+    const termin = new Date(x.termin_tarihi);
+
+    return (
+      termin.getFullYear() === today.getFullYear() &&
+      termin.getMonth() === today.getMonth()
+    );
+  });
+
   const statusChart = [
     { name: "Bekleyen", value: waiting },
     { name: "Tamamlanan", value: completed },
@@ -279,49 +290,8 @@ const buAySiparisler = projectOrders.filter((x) => {
   const sonSiparisler = projectOrders.slice(0, 8);
 
   return (
-    <main className="min-h-screen bg-slate-900 flex">
-      <aside className="w-72 bg-slate-950 text-white min-h-screen">
-        <div className="p-6 border-b border-slate-800">
-          <h1 className="text-2xl font-bold">{fullName}</h1>
-          <p className="text-slate-400 text-sm mt-2">Yönetim Paneli</p>
-          <p className="text-blue-400 text-sm mt-3">Yetki: {role}</p>
-        </div>
-
-        <nav className="p-4 space-y-2">
-          <MenuButton text="Ana Sayfa" onClick={() => router.push("/")} />
-          <MenuButton text="Dashboard" active onClick={() => router.push("/dashboard")} />
-
-          {canEdit && (
-            <MenuButton text="Toplantı Karar Girişi" onClick={() => router.push("/meeting")} />
-          )}
-
-          <MenuButton text="Karar Kayıtları" onClick={() => router.push("/decision-records")} />
-          <MenuButton text="Günlük Faaliyet" onClick={() => router.push("/daily")} />
-          <MenuButton text="Faaliyet Kayıtları" onClick={() => router.push("/activity-records")} />
-
-          {canEdit && (
-            <MenuButton text="Proje Sipariş Girişi" onClick={() => router.push("/proje-siparis")} />
-          )}
-
-          <MenuButton text="Proje Sipariş Kayıtları" onClick={() => router.push("/proje-siparis-kayitlari")} />
-
-          {role === "Yönetici" && (
-            <>
-              <MenuButton text="Ayarlar" onClick={() => router.push("/settings")} />
-              <MenuButton text="Mail Ayarları" onClick={() => router.push("/mail-settings")} />
-            </>
-          )}
-        </nav>
-
-        <div className="p-4">
-          <button
-            onClick={() => signOut({ callbackUrl: "/login" })}
-            className="w-full bg-red-600 hover:bg-red-700 py-3 rounded-xl font-semibold"
-          >
-            Çıkış Yap
-          </button>
-        </div>
-      </aside>
+    <main className="min-h-screen bg-slate-100 flex">
+      <Sidebar fullName={fullName} role={role} />
 
       <section className="flex-1 p-8 overflow-x-hidden">
         <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6 flex items-center justify-between mb-8">
@@ -352,30 +322,69 @@ const buAySiparisler = projectOrders.filter((x) => {
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
-            <KpiCard title="Toplam Sipariş" value={toplamSiparis} color="bg-indigo-600" />
-            <KpiCard title="Ürün Adedi" value={toplamUrunAdeti} color="bg-cyan-600" />
-            <KpiCard title="Genel Toplam KG" value={Math.round(genelToplamKg)} color="bg-emerald-600" />
-            <KpiCard title="Siyah Sac KG" value={Math.round(toplamSiyahSac)} color="bg-slate-600" />
-            <KpiCard title="Geciken Sipariş" value={gecikenSiparisler.length} color="bg-red-700" />
             <KpiCard
-  title="Termin Yaklaşan"
-  value={yaklasanSiparisler.length}
-  color="bg-yellow-600"
-/>
-
-<KpiCard
-  title="Bu Ay Termin"
-  value={buAySiparisler.length}
-  color="bg-blue-700"
-/>
+              title="Toplam Sipariş"
+              value={toplamSiparis}
+              color="bg-indigo-600"
+            />
+            <KpiCard
+              title="Ürün Adedi"
+              value={toplamUrunAdeti}
+              color="bg-cyan-600"
+            />
+            <KpiCard
+              title="Genel Toplam KG"
+              value={Math.round(genelToplamKg)}
+              color="bg-emerald-600"
+            />
+            <KpiCard
+              title="Siyah Sac KG"
+              value={Math.round(toplamSiyahSac)}
+              color="bg-slate-600"
+            />
+            <KpiCard
+              title="Geciken Sipariş"
+              value={gecikenSiparisler.length}
+              color="bg-red-700"
+            />
+            <KpiCard
+              title="Termin Yaklaşan"
+              value={yaklasanSiparisler.length}
+              color="bg-yellow-600"
+            />
+            <KpiCard
+              title="Bu Ay Termin"
+              value={buAySiparisler.length}
+              color="bg-blue-700"
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-5 gap-5 mt-5">
-            <KpiCard title="Hardox KG" value={Math.round(toplamHardox)} color="bg-orange-600" />
-            <KpiCard title="MC700-Strenx KG" value={Math.round(toplamMc700)} color="bg-purple-600" />
-            <KpiCard title="Alüminyum KG" value={Math.round(toplamAluminyum)} color="bg-sky-600" />
-            <KpiCard title="CrNi KG" value={Math.round(toplamCrni)} color="bg-teal-600" />
-            <KpiCard title="Talaşlı KG" value={Math.round(toplamTalasli)} color="bg-pink-600" />
+            <KpiCard
+              title="Hardox KG"
+              value={Math.round(toplamHardox)}
+              color="bg-orange-600"
+            />
+            <KpiCard
+              title="MC700-Strenx KG"
+              value={Math.round(toplamMc700)}
+              color="bg-purple-600"
+            />
+            <KpiCard
+              title="Alüminyum KG"
+              value={Math.round(toplamAluminyum)}
+              color="bg-sky-600"
+            />
+            <KpiCard
+              title="CrNi KG"
+              value={Math.round(toplamCrni)}
+              color="bg-teal-600"
+            />
+            <KpiCard
+              title="Talaşlı KG"
+              value={Math.round(toplamTalasli)}
+              color="bg-pink-600"
+            />
           </div>
         </div>
 
@@ -389,8 +398,8 @@ const buAySiparisler = projectOrders.filter((x) => {
                   nameKey="name"
                   outerRadius={110}
                   label={({ name, percent }) =>
-  `${name} ${(((percent ?? 0) as number) * 100).toFixed(0)}%`
-}
+                    `${name} ${(((percent ?? 0) as number) * 100).toFixed(0)}%`
+                  }
                 >
                   {statusChart.map((entry, index) => (
                     <Cell key={index} fill={COLORS[index % COLORS.length]} />
@@ -429,7 +438,10 @@ const buAySiparisler = projectOrders.filter((x) => {
             )}
 
             {sonSiparisler.map((p) => (
-              <div key={p.id} className="border border-slate-700 rounded-xl p-4 bg-slate-900">
+              <div
+                key={p.id}
+                className="border border-slate-700 rounded-xl p-4 bg-slate-900"
+              >
                 <div className="flex justify-between">
                   <h4 className="font-semibold text-white">{p.proje_adi}</h4>
                   <span className="text-blue-400 font-bold">
@@ -456,7 +468,10 @@ const buAySiparisler = projectOrders.filter((x) => {
             )}
 
             {gecikenSiparisler.slice(0, 8).map((p) => (
-              <div key={p.id} className="border border-red-800 rounded-xl p-4 bg-red-900/30">
+              <div
+                key={p.id}
+                className="border border-red-800 rounded-xl p-4 bg-red-900/30"
+              >
                 <div className="flex justify-between">
                   <h4 className="font-semibold text-white">{p.proje_adi}</h4>
                   <span className="text-red-500 font-bold">GECİKTİ</span>
@@ -520,53 +535,60 @@ const buAySiparisler = projectOrders.filter((x) => {
 
             <div className="space-y-3">
               {canEdit && (
-                <ActionButton text="Yeni Karar Gir" onClick={() => router.push("/meeting")} color="bg-blue-600 hover:bg-blue-700" />
+                <ActionButton
+                  text="Yeni Karar Gir"
+                  onClick={() => router.push("/meeting")}
+                  color="bg-blue-600 hover:bg-blue-700"
+                />
               )}
 
-              <ActionButton text="Karar Kayıtları" onClick={() => router.push("/decision-records")} color="bg-slate-700 hover:bg-slate-600" />
+              <ActionButton
+                text="Karar Kayıtları"
+                onClick={() => router.push("/decision-records")}
+                color="bg-slate-700 hover:bg-slate-600"
+              />
 
               {canEdit && (
-                <ActionButton text="Proje Sipariş Girişi" onClick={() => router.push("/proje-siparis")} color="bg-indigo-600 hover:bg-indigo-700" />
+                <ActionButton
+                  text="Proje Sipariş Girişi"
+                  onClick={() => router.push("/proje-siparis")}
+                  color="bg-indigo-600 hover:bg-indigo-700"
+                />
               )}
 
-              <ActionButton text="Proje Sipariş Kayıtları" onClick={() => router.push("/proje-siparis-kayitlari")} color="bg-cyan-600 hover:bg-cyan-700" />
+              <ActionButton
+                text="Proje Sipariş Kayıtları"
+                onClick={() => router.push("/proje-siparis-kayitlari")}
+                color="bg-cyan-600 hover:bg-cyan-700"
+              />
 
               {role === "Yönetici" && (
                 <>
-                  <ActionButton text="Ayarlar" onClick={() => router.push("/settings")} color="bg-green-600 hover:bg-green-700" />
-                  <ActionButton text="Mail Ayarları" onClick={() => router.push("/mail-settings")} color="bg-purple-600 hover:bg-purple-700" />
+                  <ActionButton
+                    text="Ayarlar"
+                    onClick={() => router.push("/settings")}
+                    color="bg-green-600 hover:bg-green-700"
+                  />
+                  <ActionButton
+                    text="Mail Ayarları"
+                    onClick={() => router.push("/mail-settings")}
+                    color="bg-purple-600 hover:bg-purple-700"
+                  />
                 </>
               )}
 
               {canEdit && (
-                <ActionButton text="Gecikenleri WhatsApp Hazırla" onClick={copyWhatsAppLateTasks} color="bg-emerald-600 hover:bg-emerald-700" />
+                <ActionButton
+                  text="Gecikenleri WhatsApp Hazırla"
+                  onClick={copyWhatsAppLateTasks}
+                  color="bg-emerald-600 hover:bg-emerald-700"
+                />
               )}
             </div>
           </div>
         </div>
       </section>
     </main>
-  );
-}
-
-function MenuButton({
-  text,
-  onClick,
-  active = false,
-}: {
-  text: string;
-  onClick: () => void;
-  active?: boolean;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`w-full text-left px-4 py-3 rounded-xl ${
-        active ? "bg-slate-800" : "hover:bg-slate-800"
-      }`}
-    >
-      {text}
-    </button>
   );
 }
 

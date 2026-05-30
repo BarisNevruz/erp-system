@@ -1,5 +1,5 @@
 "use client";
-
+import Sidebar from "@/components/Sidebar";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 
@@ -79,13 +79,16 @@ export default function ProjeSiparisPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 p-8">
-      <div className="max-w-6xl mx-auto bg-white rounded-2xl shadow p-8">
-        <h1 className="text-3xl font-bold text-slate-800">
+  <main className="min-h-screen bg-slate-100 flex">
+    <Sidebar fullName="Barış Nevruz" role="Yönetici" />
+
+    <section className="flex-1 bg-slate-100 p-8 overflow-x-hidden">
+      <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow p-8">
+        <h1 className="text-3xl font-bold text-white">
           Proje Sipariş Girişi
         </h1>
 
-        <p className="text-slate-500 mt-2">
+        <p className="text-slate-300 mt-2">
           Proje sipariş bilgilerini ve malzeme ağırlıklarını girin.
         </p>
 
@@ -97,7 +100,7 @@ export default function ProjeSiparisPage() {
           <Input label="Proje Adı" name="proje_adi" value={form.proje_adi} onChange={handleChange} />
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">
+            <label className="block text-sm font-semibold text-whitetext-slate-200 mb-1">
               Ürün Tipi
             </label>
             <select
@@ -131,8 +134,8 @@ export default function ProjeSiparisPage() {
         </div>
 
         <div className="mt-8 bg-slate-100 rounded-2xl p-5">
-          <p className="text-slate-500">Genel Toplam Malzeme Ağırlığı</p>
-          <p className="text-3xl font-bold text-slate-800">
+          <p className="text-slate-300">Genel Toplam Malzeme Ağırlığı</p>
+          <p className="text-3xl font-bold text-white">
             {toplamKg.toLocaleString("tr-TR")} KG
           </p>
         </div>
@@ -144,6 +147,7 @@ export default function ProjeSiparisPage() {
           Kaydet
         </button>
       </div>
+       </section>
     </main>
   );
 }
@@ -163,7 +167,7 @@ function Input({
 }) {
   return (
     <div>
-      <label className="block text-sm font-semibold text-slate-700 mb-1">
+      <label className="block text-sm font-semibold text-whitetext-slate-200 mb-1">
         {label}
       </label>
       <input
@@ -174,5 +178,7 @@ function Input({
         className="w-full border rounded-xl px-4 py-3"
       />
     </div>
-  );
+
+);
 }
+ 

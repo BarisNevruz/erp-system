@@ -1,5 +1,5 @@
 "use client";
-
+import Sidebar from "@/components/Sidebar";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
@@ -85,10 +85,16 @@ export default function MailSettingsPage() {
     getContacts();
   }
 
-  return (
-    <main className="min-h-screen bg-slate-100 p-8">
+ return (
+  <main className="min-h-screen bg-slate-100 flex">
+    <Sidebar
+      fullName="Barış Nevruz"
+      role="Yönetici"
+    />
+
+    <section className="flex-1 p-8 overflow-x-hidden">
       <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow p-8">
-        <h1 className="text-3xl font-bold text-slate-800">
+        <h1 className="text-3xl font-bold text-white">
           Mail Ayarları
         </h1>
 
@@ -155,7 +161,7 @@ export default function MailSettingsPage() {
 
             {contacts.length === 0 && (
               <tr>
-                <td colSpan={4} className="p-5 text-center text-slate-500">
+                <td colSpan={4} className="p-5 text-center text-slate-300">
                   Kayıtlı mail adresi yok.
                 </td>
               </tr>
@@ -163,6 +169,7 @@ export default function MailSettingsPage() {
           </tbody>
         </table>
       </div>
-    </main>
-  );
+         </section>
+  </main>
+);
 }

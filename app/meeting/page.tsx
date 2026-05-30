@@ -1,5 +1,5 @@
 "use client";
-
+import Sidebar from "@/components/Sidebar";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -140,9 +140,11 @@ export default function MeetingPage() {
 
     alert("Mail başarıyla gönderildi.");
   }
+return (
+  <main className="min-h-screen bg-slate-100 flex">
+    <Sidebar fullName="Barış Nevruz" role="Yönetici" />
 
-  return (
-    <main className="min-h-screen bg-slate-900 p-8 text-white">
+    <section className="flex-1 p-8 overflow-x-hidden">
       <div className="max-w-6xl mx-auto bg-slate-800 rounded-2xl border border-slate-700 p-8">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -301,6 +303,7 @@ export default function MeetingPage() {
           </button>
         </div>
       </div>
-    </main>
-  );
+          </section>
+  </main>
+);
 }
