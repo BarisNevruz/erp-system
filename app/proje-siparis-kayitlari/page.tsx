@@ -3,6 +3,7 @@
 import Sidebar from "@/components/Sidebar";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import * as XLSX from "xlsx";
 import {
   BarChart,
   Bar,
@@ -238,16 +239,56 @@ export default function ProjeSiparisKayitlariPage() {
     return kalanGun < 0 ? Math.abs(kalanGun) : 0;
   }
 
+  function excelAktar() {
+    if (filtreliKayitlar.length === 0) {
+      alert("Excel'e aktarılacak kayıt bulunamadı.");
+      return;
+    }
+
+    const excelData = filtreliKayitlar.map((k, index) => ({
+      No: index + 1,
+      "Sipariş Tarihi": k.proje_siparis_tarihi,
+      "Termin Tarihi": k.termin_tarihi,
+      "Müşteri Adı": k.musteri_adi,
+      "Proje Adı": k.proje_adi,
+      "Ürün Tipi": k.urun_tipi,
+      "Ürün Adeti": k.urun_adeti,
+      "Siyah Sac KG": k.siyah_sac_kg,
+      "Hardox KG": k.hardox_kg,
+      "MC700-Strenx KG": k.mc700_strenx_kg,
+      "Alüminyum KG": k.aluminyum_kg,
+      "CrNi KG": k.crni_kg,
+      "Talaşlı İmalat KG": k.talasli_imalat_kg,
+      "Toplam Malzeme KG": k.toplam_malzeme_kg,
+      "Tamamlanma %": k.tamamlanma_yuzdesi,
+      Durum: geciktiMi(k)
+        ? "Gecikti"
+        : yaklasiyorMu(k)
+        ? "Yaklaşıyor"
+        : Number(k.tamamlanma_yuzdesi || 0) >= 100
+        ? "Tamamlandı"
+        : "Normal",
+      "Gecikme Günü": gecikmeGunuHesapla(k.termin_tarihi),
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    const workbook = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Proje Siparişleri");
+    XLSX.writeFile(workbook, "proje_siparis_kayitlari.xlsx");
+  }
+
   async function gecikenSiparisMailiGonder() {
     const secilenMailler = mailListesi
       .filter((m) => selectedMailIds.includes(m.id))
       .map((m) => m.email);
-      const secilenCcMailler = mailListesi
-  .filter((m) => selectedCcMailIds.includes(m.id))
-  .map((m) => m.email);
+
+    const secilenCcMailler = mailListesi
+      .filter((m) => selectedCcMailIds.includes(m.id))
+      .map((m) => m.email);
 
     if (secilenMailler.length === 0) {
-      alert("Lütfen en az bir mail alıcısı seçiniz.");
+      alert("Lütfen en az bir ana mail alıcısı seçiniz.");
       return;
     }
 
@@ -265,6 +306,7 @@ export default function ProjeSiparisKayitlariPage() {
         style="border-collapse:collapse;width:100%;font-family:Arial;font-size:13px;">
         <thead>
           <tr style="background:#fee2e2;color:#991b1b;">
+            <th>Sipariş Tarihi</th>
             <th>Müşteri</th>
             <th>Proje</th>
             <th>Ürün Tipi</th>
@@ -281,6 +323,7 @@ export default function ProjeSiparisKayitlariPage() {
     gecikenler.forEach((k) => {
       body += `
         <tr>
+          <td>${k.proje_siparis_tarihi || ""}</td>
           <td>${k.musteri_adi || ""}</td>
           <td>${k.proje_adi || ""}</td>
           <td>${k.urun_tipi || ""}</td>
@@ -307,11 +350,11 @@ export default function ProjeSiparisKayitlariPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-  to: secilenMailler.join(";"),
-  cc: secilenCcMailler.join(";"),
-  subject: "KRİTİK - Geciken Proje Siparişleri",
-  body,
-}),
+        to: secilenMailler.join(";"),
+        cc: secilenCcMailler.join(";"),
+        subject: "KRİTİK - Geciken Proje Siparişleri",
+        body,
+      }),
     });
 
     if (!response.ok) {
@@ -406,87 +449,78 @@ export default function ProjeSiparisKayitlariPage() {
 
           <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mt-8 mb-4">
             <label className="font-semibold text-slate-800 block mb-3">
-              
+              Mail Alıcıları
             </label>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="overflow-x-auto">
-  <table className="w-full border border-slate-300 text-sm text-slate-900">
-    <thead className="bg-slate-800 text-white">
-      <tr>
-        <th className="border border-slate-300 p-2">Kişi</th>
-        <th className="border border-slate-300 p-2">Mail</th>
-        <th className="border border-slate-300 p-2">TO</th>
-        <th className="border border-slate-300 p-2">CC</th>
-      </tr>
-    </thead>
+            <div className="overflow-x-auto">
+              <table className="w-full border border-slate-300 text-sm text-slate-900">
+                <thead className="bg-slate-800 text-white">
+                  <tr>
+                    <th className="border border-slate-300 p-2">Kişi</th>
+                    <th className="border border-slate-300 p-2">Mail</th>
+                    <th className="border border-slate-300 p-2">TO</th>
+                    <th className="border border-slate-300 p-2">CC</th>
+                  </tr>
+                </thead>
 
-    <tbody>
-      {mailListesi.map((m) => (
-        <tr key={m.id}>
-          <td className="border border-slate-300 p-2">
-            {m.name}
-          </td>
+                <tbody>
+                  {mailListesi.map((m) => (
+                    <tr key={m.id} className="bg-white">
+                      <td className="border border-slate-300 p-2">{m.name}</td>
+                      <td className="border border-slate-300 p-2">{m.email}</td>
 
-          <td className="border border-slate-300 p-2">
-            {m.email}
-          </td>
+                      <td className="border border-slate-300 p-2 text-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedMailIds.includes(m.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedMailIds([...selectedMailIds, m.id]);
+                              setSelectedCcMailIds(selectedCcMailIds.filter((x) => x !== m.id));
+                            } else {
+                              setSelectedMailIds(selectedMailIds.filter((x) => x !== m.id));
+                            }
+                          }}
+                        />
+                      </td>
 
-          <td className="border border-slate-300 p-2 text-center">
-            <input
-              type="checkbox"
-              checked={selectedMailIds.includes(m.id)}
-              onChange={(e) => {
-                if (e.target.checked) {
-                  setSelectedMailIds([...selectedMailIds, m.id]);
+                      <td className="border border-slate-300 p-2 text-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedCcMailIds.includes(m.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedCcMailIds([...selectedCcMailIds, m.id]);
+                              setSelectedMailIds(selectedMailIds.filter((x) => x !== m.id));
+                            } else {
+                              setSelectedCcMailIds(selectedCcMailIds.filter((x) => x !== m.id));
+                            }
+                          }}
+                        />
+                      </td>
+                    </tr>
+                  ))}
 
-                  setSelectedCcMailIds(
-                    selectedCcMailIds.filter((x) => x !== m.id)
-                  );
-                } else {
-                  setSelectedMailIds(
-                    selectedMailIds.filter((x) => x !== m.id)
-                  );
-                }
-              }}
-            />
-          </td>
-
-          <td className="border border-slate-300 p-2 text-center">
-            <input
-              type="checkbox"
-              checked={selectedCcMailIds.includes(m.id)}
-              onChange={(e) => {
-                if (e.target.checked) {
-                  setSelectedCcMailIds([
-                    ...selectedCcMailIds,
-                    m.id,
-                  ]);
-
-                  setSelectedMailIds(
-                    selectedMailIds.filter((x) => x !== m.id)
-                  );
-                } else {
-                  setSelectedCcMailIds(
-                    selectedCcMailIds.filter((x) => x !== m.id)
-                  );
-                }
-              }}
-            />
-          </td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
-</div>
-
-              {mailListesi.length === 0 && (
-                <p className="text-slate-500">Aktif mail kaydı bulunamadı.</p>
-              )}
+                  {mailListesi.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="border border-slate-300 p-4 text-center text-slate-500">
+                        Aktif mail kaydı bulunamadı.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
 
-          <div className="flex justify-end mt-4 mb-4">
+          <div className="flex justify-end gap-3 mt-4 mb-4">
+            <button
+              onClick={excelAktar}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-bold"
+            >
+              Excel&apos;e Aktar
+            </button>
+
             <button
               onClick={gecikenSiparisMailiGonder}
               className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl font-bold"
@@ -643,7 +677,9 @@ function Td({ children, className = "" }: { children: React.ReactNode; className
 function EditInput({ label, name, value, onChange, type = "text" }: any) {
   return (
     <div>
-      <label className="block text-sm font-semibold text-slate-800 mb-1">{label}</label>
+      <label className="block text-sm font-semibold text-slate-800 mb-1">
+        {label}
+      </label>
       <input
         name={name}
         type={type}
