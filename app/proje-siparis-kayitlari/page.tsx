@@ -48,6 +48,7 @@ export default function ProjeSiparisKayitlariPage() {
   const [duzenlenen, setDuzenlenen] = useState<ProjectOrder | null>(null);
   const [mailListesi, setMailListesi] = useState<MailContact[]>([]);
   const [selectedMailIds, setSelectedMailIds] = useState<string[]>([]);
+  const [selectedCcMailIds, setSelectedCcMailIds] = useState<string[]>([]);
 
   useEffect(() => {
     verileriGetir();
@@ -241,6 +242,9 @@ export default function ProjeSiparisKayitlariPage() {
     const secilenMailler = mailListesi
       .filter((m) => selectedMailIds.includes(m.id))
       .map((m) => m.email);
+      const secilenCcMailler = mailListesi
+  .filter((m) => selectedCcMailIds.includes(m.id))
+  .map((m) => m.email);
 
     if (secilenMailler.length === 0) {
       alert("Lütfen en az bir mail alıcısı seçiniz.");
@@ -303,11 +307,11 @@ export default function ProjeSiparisKayitlariPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        to: secilenMailler.join(";"),
-        cc: "",
-        subject: "KRİTİK - Geciken Proje Siparişleri",
-        body,
-      }),
+  to: secilenMailler.join(";"),
+  cc: secilenCcMailler.join(";"),
+  subject: "KRİTİK - Geciken Proje Siparişleri",
+  body,
+}),
     });
 
     if (!response.ok) {
@@ -402,26 +406,79 @@ export default function ProjeSiparisKayitlariPage() {
 
           <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mt-8 mb-4">
             <label className="font-semibold text-slate-800 block mb-3">
-              Mail Alıcıları
+              
             </label>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {mailListesi.map((m) => (
-                <label key={m.id} className="flex items-center gap-2 text-sm text-slate-800">
-                  <input
-                    type="checkbox"
-                    checked={selectedMailIds.includes(m.id)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedMailIds([...selectedMailIds, m.id]);
-                      } else {
-                        setSelectedMailIds(selectedMailIds.filter((x) => x !== m.id));
-                      }
-                    }}
-                  />
-                  <span>{m.name} - {m.email}</span>
-                </label>
-              ))}
+              <div className="overflow-x-auto">
+  <table className="w-full border border-slate-300 text-sm text-slate-900">
+    <thead className="bg-slate-800 text-white">
+      <tr>
+        <th className="border border-slate-300 p-2">Kişi</th>
+        <th className="border border-slate-300 p-2">Mail</th>
+        <th className="border border-slate-300 p-2">TO</th>
+        <th className="border border-slate-300 p-2">CC</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {mailListesi.map((m) => (
+        <tr key={m.id}>
+          <td className="border border-slate-300 p-2">
+            {m.name}
+          </td>
+
+          <td className="border border-slate-300 p-2">
+            {m.email}
+          </td>
+
+          <td className="border border-slate-300 p-2 text-center">
+            <input
+              type="checkbox"
+              checked={selectedMailIds.includes(m.id)}
+              onChange={(e) => {
+                if (e.target.checked) {
+                  setSelectedMailIds([...selectedMailIds, m.id]);
+
+                  setSelectedCcMailIds(
+                    selectedCcMailIds.filter((x) => x !== m.id)
+                  );
+                } else {
+                  setSelectedMailIds(
+                    selectedMailIds.filter((x) => x !== m.id)
+                  );
+                }
+              }}
+            />
+          </td>
+
+          <td className="border border-slate-300 p-2 text-center">
+            <input
+              type="checkbox"
+              checked={selectedCcMailIds.includes(m.id)}
+              onChange={(e) => {
+                if (e.target.checked) {
+                  setSelectedCcMailIds([
+                    ...selectedCcMailIds,
+                    m.id,
+                  ]);
+
+                  setSelectedMailIds(
+                    selectedMailIds.filter((x) => x !== m.id)
+                  );
+                } else {
+                  setSelectedCcMailIds(
+                    selectedCcMailIds.filter((x) => x !== m.id)
+                  );
+                }
+              }}
+            />
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
 
               {mailListesi.length === 0 && (
                 <p className="text-slate-500">Aktif mail kaydı bulunamadı.</p>
