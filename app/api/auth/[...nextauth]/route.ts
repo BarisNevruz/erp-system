@@ -26,11 +26,17 @@ export const authOptions = {
       if (account?.access_token) {
         token.accessToken = account.access_token;
       }
+
+      if (account?.refresh_token) {
+        token.refreshToken = account.refresh_token;
+      }
+
       return token;
     },
 
     async session({ session, token }: any) {
       session.accessToken = token.accessToken;
+      session.refreshToken = token.refreshToken;
       return session;
     },
 
