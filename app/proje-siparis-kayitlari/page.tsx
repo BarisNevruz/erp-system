@@ -50,6 +50,11 @@ export default function ProjeSiparisKayitlariPage() {
   const [mailListesi, setMailListesi] = useState<MailContact[]>([]);
   const [selectedMailIds, setSelectedMailIds] = useState<string[]>([]);
   const [selectedCcMailIds, setSelectedCcMailIds] = useState<string[]>([]);
+  const [musteriFiltre, setMusteriFiltre] = useState("");
+const [urunTipiFiltre, setUrunTipiFiltre] = useState("");
+const [durumFiltre, setDurumFiltre] = useState("Tümü");
+const [baslangicTarih, setBaslangicTarih] = useState("");
+const [bitisTarih, setBitisTarih] = useState("");
 
   useEffect(() => {
     verileriGetir();
@@ -146,9 +151,52 @@ export default function ProjeSiparisKayitlariPage() {
   }
 
   const filtreliKayitlar = kayitlar.filter((k) => {
-    const text = `${k.proje_adi} ${k.musteri_adi} ${k.urun_tipi}`.toLowerCase();
-    return text.includes(arama.toLowerCase());
-  });
+  const text =
+    `${k.proje_adi} ${k.musteri_adi} ${k.urun_tipi}`.toLowerCase();
+
+  const aramaUygun = text.includes(arama.toLowerCase());
+
+  const musteriUygun =
+    !musteriFiltre ||
+    k.musteri_adi === musteriFiltre;
+
+  const urunTipiUygun =
+    !urunTipiFiltre ||
+    k.urun_tipi === urunTipiFiltre;
+
+  let durumUygun = true;
+
+  if (durumFiltre === "Geciken")
+    durumUygun = geciktiMi(k);
+
+  if (durumFiltre === "Tamamlanan")
+    durumUygun =
+      Number(k.tamamlanma_yuzdesi || 0) >= 100;
+
+  if (durumFiltre === "Devam Eden")
+    durumUygun =
+      Number(k.tamamlanma_yuzdesi || 0) < 100;
+
+  let tarihUygun = true;
+
+  if (baslangicTarih)
+    tarihUygun =
+      tarihUygun &&
+      k.proje_siparis_tarihi >= baslangicTarih;
+
+  if (bitisTarih)
+    tarihUygun =
+      tarihUygun &&
+      k.proje_siparis_tarihi <= bitisTarih;
+
+  return (
+    aramaUygun &&
+    musteriUygun &&
+    urunTipiUygun &&
+    durumUygun &&
+    tarihUygun
+  );
+});
 
   const toplamUrunAdeti = filtreliKayitlar.reduce((t, k) => t + Number(k.urun_adeti || 0), 0);
   const toplamSiyahSac = filtreliKayitlar.reduce((t, k) => t + Number(k.siyah_sac_kg || 0), 0);
@@ -528,14 +576,86 @@ export default function ProjeSiparisKayitlariPage() {
               Geciken Sipariş Maili Gönder
             </button>
           </div>
+<div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-6">
 
+  <select
+    value={musteriFiltre}
+    onChange={(e) => setMusteriFiltre(e.target.value)}
+    className="border border-slate-300 rounded-xl px-3 py-3"
+  >
+    <option value="">Tüm Müşteriler</option>
+
+    {[...new Set(kayitlar.map(x => x.musteri_adi))]
+      .filter(Boolean)
+      .map((m) => (
+        <option key={m} value={m}>
+          {m}
+        </option>
+      ))}
+  </select>
+
+  <select
+    value={urunTipiFiltre}
+    onChange={(e) => setUrunTipiFiltre(e.target.value)}
+    className="border border-slate-300 rounded-xl px-3 py-3"
+  >
+    <option value="">Tüm Ürünler</option>
+
+    {[...new Set(kayitlar.map(x => x.urun_tipi))]
+      .filter(Boolean)
+      .map((u) => (
+        <option key={u} value={u}>
+          {u}
+        </option>
+      ))}
+  </select>
+
+  <select
+    value={durumFiltre}
+    onChange={(e) => setDurumFiltre(e.target.value)}
+    className="border border-slate-300 rounded-xl px-3 py-3"
+  >
+    <option>Tümü</option>
+    <option>Geciken</option>
+    <option>Tamamlanan</option>
+    <option>Devam Eden</option>
+  </select>
+
+  <input
+    type="date"
+    value={baslangicTarih}
+    onChange={(e) => setBaslangicTarih(e.target.value)}
+    className="border border-slate-300 rounded-xl px-3 py-3"
+  />
+
+  <input
+    type="date"
+    value={bitisTarih}
+    onChange={(e) => setBitisTarih(e.target.value)}
+    className="border border-slate-300 rounded-xl px-3 py-3"
+  />
+</div>
           <input
             value={arama}
             onChange={(e) => setArama(e.target.value)}
             placeholder="Müşteri, proje adı veya ürün tipi ara..."
             className="w-full bg-white border border-slate-300 text-slate-900 placeholder:text-slate-400 rounded-xl px-4 py-3 mt-4"
           />
-
+<div className="mt-4">
+  <button
+    onClick={() => {
+      setArama("");
+      setMusteriFiltre("");
+      setUrunTipiFiltre("");
+      setDurumFiltre("Tümü");
+      setBaslangicTarih("");
+      setBitisTarih("");
+    }}
+    className="bg-slate-700 hover:bg-slate-800 text-white px-5 py-3 rounded-xl font-bold"
+  >
+    Filtreleri Temizle
+  </button>
+</div>
           <div className="overflow-x-auto mt-8">
             <table className="w-full border-collapse text-sm">
               <thead>

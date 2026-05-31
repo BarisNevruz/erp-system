@@ -96,6 +96,8 @@ export default function SettingsPage() {
   const [userEmail, setUserEmail] = useState("");
   const [userFullName, setUserFullName] = useState("");
   const [userRole, setUserRole] = useState("Operatör");
+  const [editPerson, setEditPerson] = useState<Person | null>(null);
+const [editMailGroup, setEditMailGroup] = useState<MailGroup | null>(null);
 
   useEffect(() => {
     setPeople(JSON.parse(localStorage.getItem("erp_people") || "[]"));
@@ -304,7 +306,29 @@ export default function SettingsPage() {
     setWaContactName("");
     setWaContactPhone("");
   }
+function updatePerson() {
+  if (!editPerson) return;
 
+  savePeople(
+    people.map((p) =>
+      p.id === editPerson.id ? editPerson : p
+    )
+  );
+
+  setEditPerson(null);
+}
+
+function updateMailGroup() {
+  if (!editMailGroup) return;
+
+  saveMailGroups(
+    mailGroups.map((g) =>
+      g.id === editMailGroup.id ? editMailGroup : g
+    )
+  );
+
+  setEditMailGroup(null);
+}
   return (
   <main className="min-h-screen bg-slate-100 flex">
     <Sidebar
@@ -377,7 +401,21 @@ export default function SettingsPage() {
                 <td className="td">{p.department}</td>
                 <td className="td">{p.mailGroup}</td>
                 <td className="td text-center">
-                  <button onClick={() => savePeople(people.filter((x) => x.id !== p.id))} className="btn-red">Sil</button>
+                  <div className="flex gap-2 justify-center">
+  <button
+    onClick={() => setEditPerson(p)}
+    className="btn-blue"
+  >
+    Düzenle
+  </button>
+
+  <button
+    onClick={() => savePeople(people.filter((x) => x.id !== p.id))}
+    className="btn-red"
+  >
+    Sil
+  </button>
+</div>
                 </td>
               </tr>
             ))}
@@ -402,7 +440,21 @@ export default function SettingsPage() {
                 <td className="td">{g.toMail}</td>
                 <td className="td">{g.ccMail}</td>
                 <td className="td text-center">
-                  <button onClick={() => saveMailGroups(mailGroups.filter((x) => x.id !== g.id))} className="btn-red">Sil</button>
+                  <div className="flex gap-2 justify-center">
+  <button
+    onClick={() => setEditMailGroup(g)}
+    className="btn-blue"
+  >
+    Düzenle
+  </button>
+
+  <button
+    onClick={() => saveMailGroups(mailGroups.filter((x) => x.id !== g.id))}
+    className="btn-red"
+  >
+    Sil
+  </button>
+</div>
                 </td>
               </tr>
             ))}
@@ -473,6 +525,117 @@ export default function SettingsPage() {
           </Table>
         </Panel>
       </div>
+      {editPerson && (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
+    <div className="bg-white rounded-2xl p-6 w-full max-w-xl text-slate-900">
+      <h2 className="text-2xl font-bold mb-5">Kişi Düzenle</h2>
+
+      <div className="space-y-3">
+        <input
+          value={editPerson.name}
+          onChange={(e) =>
+            setEditPerson({ ...editPerson, name: e.target.value })
+          }
+          className="input"
+          placeholder="Kişi adı"
+        />
+
+        <input
+          value={editPerson.department}
+          onChange={(e) =>
+            setEditPerson({ ...editPerson, department: e.target.value })
+          }
+          className="input"
+          placeholder="Birim"
+        />
+
+        <select
+          value={editPerson.mailGroup}
+          onChange={(e) =>
+            setEditPerson({ ...editPerson, mailGroup: e.target.value })
+          }
+          className="input"
+        >
+          {POSTA_GRUPLARI.map((g) => (
+            <option key={g}>{g}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="flex justify-end gap-3 mt-6">
+        <button
+          onClick={() => setEditPerson(null)}
+          className="bg-slate-200 hover:bg-slate-300 text-slate-900 px-5 py-3 rounded-xl"
+        >
+          Vazgeç
+        </button>
+
+        <button
+          onClick={updatePerson}
+          className="btn-blue"
+        >
+          Güncelle
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+{editMailGroup && (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
+    <div className="bg-white rounded-2xl p-6 w-full max-w-xl text-slate-900">
+      <h2 className="text-2xl font-bold mb-5">Mail Grubu Düzenle</h2>
+
+      <div className="space-y-3">
+        <select
+          value={editMailGroup.groupName}
+          onChange={(e) =>
+            setEditMailGroup({ ...editMailGroup, groupName: e.target.value })
+          }
+          className="input"
+        >
+          {POSTA_GRUPLARI.map((g) => (
+            <option key={g}>{g}</option>
+          ))}
+        </select>
+
+        <input
+          value={editMailGroup.toMail}
+          onChange={(e) =>
+            setEditMailGroup({ ...editMailGroup, toMail: e.target.value })
+          }
+          className="input"
+          placeholder="TO Mail"
+        />
+
+        <input
+          value={editMailGroup.ccMail}
+          onChange={(e) =>
+            setEditMailGroup({ ...editMailGroup, ccMail: e.target.value })
+          }
+          className="input"
+          placeholder="CC Mail"
+        />
+      </div>
+
+      <div className="flex justify-end gap-3 mt-6">
+        <button
+          onClick={() => setEditMailGroup(null)}
+          className="bg-slate-200 hover:bg-slate-300 text-slate-900 px-5 py-3 rounded-xl"
+        >
+          Vazgeç
+        </button>
+
+        <button
+          onClick={updateMailGroup}
+          className="btn-blue"
+        >
+          Güncelle
+        </button>
+      </div>
+    </div>
+  </div>
+)}
       </section>
     </main>
   );
