@@ -1,4 +1,5 @@
 "use client";
+
 import Sidebar from "@/components/Sidebar";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -210,9 +211,9 @@ export default function ProjeSiparisKayitlariPage() {
   }
 
   function satirRengi(k: ProjectOrder) {
-    if (geciktiMi(k)) return "bg-red-100 border-b border-red-300";
-    if (yaklasiyorMu(k)) return "bg-yellow-100 border-b border-yellow-300";
-    return "border-b";
+    if (geciktiMi(k)) return "bg-red-50 border-b border-red-200 text-slate-900";
+    if (yaklasiyorMu(k)) return "bg-yellow-50 border-b border-yellow-200 text-slate-900";
+    return "border-b border-slate-200 text-slate-900";
   }
 
   function durumEtiketi(k: ProjectOrder) {
@@ -225,11 +226,7 @@ export default function ProjeSiparisKayitlariPage() {
     }
 
     if (yaklasiyorMu(k)) {
-      return (
-        <span className="text-yellow-700 font-bold">
-          Yaklaşıyor ({kalanGunHesapla(k.termin_tarihi)} gün)
-        </span>
-      );
+      return <span className="text-yellow-700 font-bold">Yaklaşıyor ({kalanGunHesapla(k.termin_tarihi)} gün)</span>;
     }
 
     return <span className="text-green-600 font-semibold">Normal</span>;
@@ -324,219 +321,225 @@ export default function ProjeSiparisKayitlariPage() {
 
   return (
     <main className="min-h-screen bg-slate-100 flex">
-  <Sidebar fullName="Barış Nevruz" role="Yönetici" />
+      <Sidebar fullName="Barış Nevruz" role="Yönetici" />
 
-  <section className="flex-1 bg-slate-100 p-8 overflow-x-hidden">
-      <div className="max-w-7xl mx-auto bg-white rounded-2xl shadow p-8">
-        <h1 className="text-3xl font-bold text-white">Proje Sipariş Kayıtları</h1>
+      <section className="flex-1 bg-slate-100 p-8 overflow-x-hidden">
+        <div className="max-w-7xl mx-auto bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-slate-900">
+          <h1 className="text-3xl font-bold text-slate-900">
+            Proje Sipariş Kayıtları
+          </h1>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8">
-          <Kpi title="Toplam Sipariş" value={filtreliKayitlar.length} />
-          <Kpi title="Toplam Ürün Adeti" value={toplamUrunAdeti} />
-          <Kpi title="Genel Toplam KG" value={genelToplam} />
-          <Kpi title="Geciken Sipariş" value={filtreliKayitlar.filter(geciktiMi).length} danger />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mt-5">
-          <Kpi title="Siyah Sac KG" value={toplamSiyahSac} />
-          <Kpi title="Hardox KG" value={toplamHardox} />
-          <Kpi title="MC700-Strenx KG" value={toplamMc700} />
-          <Kpi title="Alüminyum KG" value={toplamAluminyum} />
-          <Kpi title="CrNi KG" value={toplamCrni} />
-          <Kpi title="Talaşlı KG" value={toplamTalasli} />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
-          <ChartCard title="Malzeme Bazlı Tonaj">
-            {hasMalzemeData ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={malzemeTonajData} margin={{ top: 20, right: 20, left: 10, bottom: 80 }}>
-                  <XAxis dataKey="name" interval={0} angle={-35} textAnchor="end" height={80} tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(value) => `${Number(value).toLocaleString("tr-TR")} kg`} />
-                  <Bar dataKey="kg" fill="#2563eb" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <EmptyChartText />
-            )}
-          </ChartCard>
-
-          <ChartCard title="Müşteri Bazlı Tonaj">
-            {hasMusteriData ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={musteriTonajData}
-                    dataKey="kg"
-                    nameKey="name"
-                    outerRadius={95}
-                    label={({ name }) => String(name).slice(0, 14)}
-                  >
-                    {musteriTonajData.map((_, index) => (
-                      <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => `${Number(value).toLocaleString("tr-TR")} kg`} />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <EmptyChartText />
-            )}
-          </ChartCard>
-
-          <ChartCard title="Ürün Tipi Bazlı Tonaj">
-            {hasUrunData ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={urunTipiTonajData} margin={{ top: 20, right: 20, left: 10, bottom: 80 }}>
-                  <XAxis dataKey="name" interval={0} angle={-35} textAnchor="end" height={80} tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(value) => `${Number(value).toLocaleString("tr-TR")} kg`} />
-                  <Bar dataKey="kg" fill="#16a34a" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <EmptyChartText />
-            )}
-          </ChartCard>
-        </div>
-
-        <div className="bg-slate-100 rounded-xl p-4 mt-8 mb-4">
-          <label className="font-semibold block mb-3">Mail Alıcıları</label>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {mailListesi.map((m) => (
-              <label key={m.id} className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={selectedMailIds.includes(m.id)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedMailIds([...selectedMailIds, m.id]);
-                    } else {
-                      setSelectedMailIds(selectedMailIds.filter((x) => x !== m.id));
-                    }
-                  }}
-                />
-                <span>{m.name} - {m.email}</span>
-              </label>
-            ))}
-
-            {mailListesi.length === 0 && (
-              <p className="text-slate-300">Aktif mail kaydı bulunamadı.</p>
-            )}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8">
+            <Kpi title="Toplam Sipariş" value={filtreliKayitlar.length} />
+            <Kpi title="Toplam Ürün Adeti" value={toplamUrunAdeti} />
+            <Kpi title="Genel Toplam KG" value={genelToplam} />
+            <Kpi title="Geciken Sipariş" value={filtreliKayitlar.filter(geciktiMi).length} danger />
           </div>
-        </div>
 
-        <div className="flex justify-end mt-4 mb-4">
-          <button
-            onClick={gecikenSiparisMailiGonder}
-            className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl font-bold"
-          >
-            Geciken Sipariş Maili Gönder
-          </button>
-        </div>
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mt-5">
+            <Kpi title="Siyah Sac KG" value={toplamSiyahSac} />
+            <Kpi title="Hardox KG" value={toplamHardox} />
+            <Kpi title="MC700-Strenx KG" value={toplamMc700} />
+            <Kpi title="Alüminyum KG" value={toplamAluminyum} />
+            <Kpi title="CrNi KG" value={toplamCrni} />
+            <Kpi title="Talaşlı KG" value={toplamTalasli} />
+          </div>
 
-        <input
-          value={arama}
-          onChange={(e) => setArama(e.target.value)}
-          placeholder="Müşteri, proje adı veya ürün tipi ara..."
-          className="w-full border rounded-xl px-4 py-3 mt-4"
-        />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
+            <ChartCard title="Malzeme Bazlı Tonaj">
+              {hasMalzemeData ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={malzemeTonajData} margin={{ top: 20, right: 20, left: 10, bottom: 80 }}>
+                    <XAxis dataKey="name" interval={0} angle={-35} textAnchor="end" height={80} tick={{ fontSize: 11, fill: "#334155" }} />
+                    <YAxis tick={{ fontSize: 11, fill: "#334155" }} />
+                    <Tooltip formatter={(value) => `${Number(value).toLocaleString("tr-TR")} kg`} />
+                    <Bar dataKey="kg" fill="#2563eb" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <EmptyChartText />
+              )}
+            </ChartCard>
 
-        <div className="overflow-x-auto mt-8">
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="bg-slate-900 text-white">
-                <Th>İşlem</Th>
-                <Th>Durum</Th>
-                <Th>Sipariş Tarihi</Th>
-                <Th>Termin</Th>
-                <Th>Müşteri</Th>
-                <Th>Proje</Th>
-                <Th>Ürün Tipi</Th>
-                <Th>Adet</Th>
-                <Th>Siyah Sac</Th>
-                <Th>Hardox</Th>
-                <Th>MC700-Strenx</Th>
-                <Th>Alüminyum</Th>
-                <Th>CrNi</Th>
-                <Th>Talaşlı</Th>
-                <Th>Toplam KG</Th>
-                <Th>%</Th>
-              </tr>
-            </thead>
+            <ChartCard title="Müşteri Bazlı Tonaj">
+              {hasMusteriData ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={musteriTonajData}
+                      dataKey="kg"
+                      nameKey="name"
+                      outerRadius={95}
+                      label={({ name }) => String(name).slice(0, 14)}
+                    >
+                      {musteriTonajData.map((_, index) => (
+                        <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => `${Number(value).toLocaleString("tr-TR")} kg`} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <EmptyChartText />
+              )}
+            </ChartCard>
 
-            <tbody>
-              {filtreliKayitlar.map((k) => (
-                <tr key={k.id} className={satirRengi(k)}>
-                  <Td>
-                    <div className="flex gap-2">
-                      <button onClick={() => setDuzenlenen(k)} className="bg-blue-600 text-white px-3 py-1 rounded-lg">
-                        Düzenle
-                      </button>
-                      <button onClick={() => sil(k.id)} className="bg-red-600 text-white px-3 py-1 rounded-lg">
-                        Sil
-                      </button>
-                    </div>
-                  </Td>
+            <ChartCard title="Ürün Tipi Bazlı Tonaj">
+              {hasUrunData ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={urunTipiTonajData} margin={{ top: 20, right: 20, left: 10, bottom: 80 }}>
+                    <XAxis dataKey="name" interval={0} angle={-35} textAnchor="end" height={80} tick={{ fontSize: 11, fill: "#334155" }} />
+                    <YAxis tick={{ fontSize: 11, fill: "#334155" }} />
+                    <Tooltip formatter={(value) => `${Number(value).toLocaleString("tr-TR")} kg`} />
+                    <Bar dataKey="kg" fill="#16a34a" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <EmptyChartText />
+              )}
+            </ChartCard>
+          </div>
 
-                  <Td>{durumEtiketi(k)}</Td>
-                  <Td>{k.proje_siparis_tarihi}</Td>
-                  <Td>{k.termin_tarihi}</Td>
-                  <Td>{k.musteri_adi}</Td>
-                  <Td>{k.proje_adi}</Td>
-                  <Td>{k.urun_tipi}</Td>
-                  <Td>{k.urun_adeti}</Td>
-                  <Td>{formatKg(k.siyah_sac_kg)}</Td>
-                  <Td>{formatKg(k.hardox_kg)}</Td>
-                  <Td>{formatKg(k.mc700_strenx_kg)}</Td>
-                  <Td>{formatKg(k.aluminyum_kg)}</Td>
-                  <Td>{formatKg(k.crni_kg)}</Td>
-                  <Td>{formatKg(k.talasli_imalat_kg)}</Td>
-                  <Td className="font-bold">{formatKg(k.toplam_malzeme_kg)}</Td>
-                  <Td>%{k.tamamlanma_yuzdesi}</Td>
-                </tr>
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mt-8 mb-4">
+            <label className="font-semibold text-slate-800 block mb-3">
+              Mail Alıcıları
+            </label>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {mailListesi.map((m) => (
+                <label key={m.id} className="flex items-center gap-2 text-sm text-slate-800">
+                  <input
+                    type="checkbox"
+                    checked={selectedMailIds.includes(m.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedMailIds([...selectedMailIds, m.id]);
+                      } else {
+                        setSelectedMailIds(selectedMailIds.filter((x) => x !== m.id));
+                      }
+                    }}
+                  />
+                  <span>{m.name} - {m.email}</span>
+                </label>
               ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
 
-      {duzenlenen && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-6">
-          <div className="bg-white rounded-2xl p-6 max-w-5xl w-full max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-5">Sipariş Düzenle</h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <EditInput label="Sipariş Tarihi" name="proje_siparis_tarihi" type="date" value={duzenlenen.proje_siparis_tarihi} onChange={handleEditChange} />
-              <EditInput label="Termin Tarihi" name="termin_tarihi" type="date" value={duzenlenen.termin_tarihi} onChange={handleEditChange} />
-              <EditInput label="Müşteri Adı" name="musteri_adi" value={duzenlenen.musteri_adi} onChange={handleEditChange} />
-              <EditInput label="Proje Adı" name="proje_adi" value={duzenlenen.proje_adi} onChange={handleEditChange} />
-              <EditInput label="Ürün Tipi" name="urun_tipi" value={duzenlenen.urun_tipi} onChange={handleEditChange} />
-              <EditInput label="Ürün Adeti" name="urun_adeti" type="number" value={String(duzenlenen.urun_adeti)} onChange={handleEditChange} />
-              <EditInput label="Siyah Sac KG" name="siyah_sac_kg" type="number" value={String(duzenlenen.siyah_sac_kg)} onChange={handleEditChange} />
-              <EditInput label="Hardox KG" name="hardox_kg" type="number" value={String(duzenlenen.hardox_kg)} onChange={handleEditChange} />
-              <EditInput label="MC700-Strenx KG" name="mc700_strenx_kg" type="number" value={String(duzenlenen.mc700_strenx_kg)} onChange={handleEditChange} />
-              <EditInput label="Alüminyum KG" name="aluminyum_kg" type="number" value={String(duzenlenen.aluminyum_kg)} onChange={handleEditChange} />
-              <EditInput label="CrNi KG" name="crni_kg" type="number" value={String(duzenlenen.crni_kg)} onChange={handleEditChange} />
-              <EditInput label="Talaşlı İmalat KG" name="talasli_imalat_kg" type="number" value={String(duzenlenen.talasli_imalat_kg)} onChange={handleEditChange} />
-              <EditInput label="Tamamlanma %" name="tamamlanma_yuzdesi" type="number" value={String(duzenlenen.tamamlanma_yuzdesi)} onChange={handleEditChange} />
-            </div>
-
-            <div className="flex justify-end gap-3 mt-6">
-              <button onClick={() => setDuzenlenen(null)} className="px-6 py-3 rounded-xl bg-slate-200">
-                Vazgeç
-              </button>
-              <button onClick={guncelle} className="px-6 py-3 rounded-xl bg-blue-600 text-white">
-                Güncelle
-              </button>
+              {mailListesi.length === 0 && (
+                <p className="text-slate-500">Aktif mail kaydı bulunamadı.</p>
+              )}
             </div>
           </div>
+
+          <div className="flex justify-end mt-4 mb-4">
+            <button
+              onClick={gecikenSiparisMailiGonder}
+              className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl font-bold"
+            >
+              Geciken Sipariş Maili Gönder
+            </button>
+          </div>
+
+          <input
+            value={arama}
+            onChange={(e) => setArama(e.target.value)}
+            placeholder="Müşteri, proje adı veya ürün tipi ara..."
+            className="w-full bg-white border border-slate-300 text-slate-900 placeholder:text-slate-400 rounded-xl px-4 py-3 mt-4"
+          />
+
+          <div className="overflow-x-auto mt-8">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="bg-slate-800 text-white">
+                  <Th>İşlem</Th>
+                  <Th>Durum</Th>
+                  <Th>Sipariş Tarihi</Th>
+                  <Th>Termin</Th>
+                  <Th>Müşteri</Th>
+                  <Th>Proje</Th>
+                  <Th>Ürün Tipi</Th>
+                  <Th>Adet</Th>
+                  <Th>Siyah Sac</Th>
+                  <Th>Hardox</Th>
+                  <Th>MC700-Strenx</Th>
+                  <Th>Alüminyum</Th>
+                  <Th>CrNi</Th>
+                  <Th>Talaşlı</Th>
+                  <Th>Toplam KG</Th>
+                  <Th>%</Th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {filtreliKayitlar.map((k) => (
+                  <tr key={k.id} className={satirRengi(k)}>
+                    <Td>
+                      <div className="flex gap-2">
+                        <button onClick={() => setDuzenlenen(k)} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg">
+                          Düzenle
+                        </button>
+                        <button onClick={() => sil(k.id)} className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg">
+                          Sil
+                        </button>
+                      </div>
+                    </Td>
+
+                    <Td>{durumEtiketi(k)}</Td>
+                    <Td>{k.proje_siparis_tarihi}</Td>
+                    <Td>{k.termin_tarihi}</Td>
+                    <Td>{k.musteri_adi}</Td>
+                    <Td>{k.proje_adi}</Td>
+                    <Td>{k.urun_tipi}</Td>
+                    <Td>{k.urun_adeti}</Td>
+                    <Td>{formatKg(k.siyah_sac_kg)}</Td>
+                    <Td>{formatKg(k.hardox_kg)}</Td>
+                    <Td>{formatKg(k.mc700_strenx_kg)}</Td>
+                    <Td>{formatKg(k.aluminyum_kg)}</Td>
+                    <Td>{formatKg(k.crni_kg)}</Td>
+                    <Td>{formatKg(k.talasli_imalat_kg)}</Td>
+                    <Td className="font-bold">{formatKg(k.toplam_malzeme_kg)}</Td>
+                    <Td>%{k.tamamlanma_yuzdesi}</Td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      )}
-    </section>
-</main>
+
+        {duzenlenen && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-6">
+            <div className="bg-white rounded-2xl p-6 max-w-5xl w-full max-h-[90vh] overflow-y-auto text-slate-900">
+              <h2 className="text-2xl font-bold mb-5 text-slate-900">
+                Sipariş Düzenle
+              </h2>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <EditInput label="Sipariş Tarihi" name="proje_siparis_tarihi" type="date" value={duzenlenen.proje_siparis_tarihi} onChange={handleEditChange} />
+                <EditInput label="Termin Tarihi" name="termin_tarihi" type="date" value={duzenlenen.termin_tarihi} onChange={handleEditChange} />
+                <EditInput label="Müşteri Adı" name="musteri_adi" value={duzenlenen.musteri_adi} onChange={handleEditChange} />
+                <EditInput label="Proje Adı" name="proje_adi" value={duzenlenen.proje_adi} onChange={handleEditChange} />
+                <EditInput label="Ürün Tipi" name="urun_tipi" value={duzenlenen.urun_tipi} onChange={handleEditChange} />
+                <EditInput label="Ürün Adeti" name="urun_adeti" type="number" value={String(duzenlenen.urun_adeti)} onChange={handleEditChange} />
+                <EditInput label="Siyah Sac KG" name="siyah_sac_kg" type="number" value={String(duzenlenen.siyah_sac_kg)} onChange={handleEditChange} />
+                <EditInput label="Hardox KG" name="hardox_kg" type="number" value={String(duzenlenen.hardox_kg)} onChange={handleEditChange} />
+                <EditInput label="MC700-Strenx KG" name="mc700_strenx_kg" type="number" value={String(duzenlenen.mc700_strenx_kg)} onChange={handleEditChange} />
+                <EditInput label="Alüminyum KG" name="aluminyum_kg" type="number" value={String(duzenlenen.aluminyum_kg)} onChange={handleEditChange} />
+                <EditInput label="CrNi KG" name="crni_kg" type="number" value={String(duzenlenen.crni_kg)} onChange={handleEditChange} />
+                <EditInput label="Talaşlı İmalat KG" name="talasli_imalat_kg" type="number" value={String(duzenlenen.talasli_imalat_kg)} onChange={handleEditChange} />
+                <EditInput label="Tamamlanma %" name="tamamlanma_yuzdesi" type="number" value={String(duzenlenen.tamamlanma_yuzdesi)} onChange={handleEditChange} />
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button onClick={() => setDuzenlenen(null)} className="px-6 py-3 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-900">
+                  Vazgeç
+                </button>
+                <button onClick={guncelle} className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white">
+                  Güncelle
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
+    </main>
   );
 }
 
@@ -546,7 +549,7 @@ function formatKg(value: number) {
 
 function EmptyChartText() {
   return (
-    <div className="h-[360px] flex items-center justify-center text-slate-300 text-sm">
+    <div className="h-[360px] flex items-center justify-center text-slate-500 text-sm">
       Grafik için tonaj verisi yok.
     </div>
   );
@@ -554,9 +557,9 @@ function EmptyChartText() {
 
 function Kpi({ title, value, danger = false }: { title: string; value: number; danger?: boolean }) {
   return (
-    <div className={`rounded-2xl p-5 ${danger ? "bg-red-100" : "bg-slate-100"}`}>
-      <p className={danger ? "text-red-600" : "text-slate-300"}>{title}</p>
-      <p className={`text-2xl font-bold ${danger ? "text-red-700" : "text-white"}`}>
+    <div className={`rounded-2xl p-5 border ${danger ? "bg-red-50 border-red-200" : "bg-slate-50 border-slate-200"}`}>
+      <p className={danger ? "text-red-600 font-semibold" : "text-slate-600 font-semibold"}>{title}</p>
+      <p className={`text-2xl font-bold mt-1 ${danger ? "text-red-700" : "text-slate-900"}`}>
         {Number(value || 0).toLocaleString("tr-TR")}
       </p>
     </div>
@@ -565,8 +568,8 @@ function Kpi({ title, value, danger = false }: { title: string; value: number; d
 
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-slate-100 rounded-2xl p-5 min-h-[430px]">
-      <h2 className="text-lg font-bold text-white mb-4">{title}</h2>
+    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 min-h-[430px]">
+      <h2 className="text-lg font-bold text-slate-900 mb-4">{title}</h2>
       <div className="w-full h-[360px]">{children}</div>
     </div>
   );
@@ -583,13 +586,13 @@ function Td({ children, className = "" }: { children: React.ReactNode; className
 function EditInput({ label, name, value, onChange, type = "text" }: any) {
   return (
     <div>
-      <label className="block text-sm font-semibold text-whitetext-slate-200 mb-1">{label}</label>
+      <label className="block text-sm font-semibold text-slate-800 mb-1">{label}</label>
       <input
         name={name}
         type={type}
         value={value || ""}
         onChange={onChange}
-        className="w-full border rounded-xl px-4 py-3"
+        className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3"
       />
     </div>
   );

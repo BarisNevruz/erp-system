@@ -146,17 +146,17 @@ export default function DailyPage() {
 
     <section className="flex-1 bg-slate-100 p-8 overflow-x-hidden">
     
-      <div className="bg-slate-800 rounded-2xl p-8 mb-6">
+      <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-8 mb-6 text-slate-900">
         <h1 className="text-3xl font-bold">
           Günlük Faaliyet Giriş Ekranı
         </h1>
 
-        <p className="text-slate-300 mt-2">
+        <p className="text-slate-600 mt-2">
           Günlük faaliyetleri kaydedin ve WhatsApp raporu hazırlayın.
         </p>
       </div>
 
-      <div className="bg-slate-800 rounded-2xl p-6 mb-6">
+      <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 mb-6 text-slate-900">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="font-semibold">Tarih</label>
@@ -164,7 +164,7 @@ export default function DailyPage() {
               type="date"
               value={activityDate}
               onChange={(e) => setActivityDate(e.target.value)}
-              className="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 mt-2"
+              className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 mt-2"
             />
           </div>
 
@@ -183,12 +183,12 @@ export default function DailyPage() {
           </button>
         </div>
 
-        {status && <p className="text-slate-300 mt-4">{status}</p>}
+        {status && <p className="text-green-700 mt-4 font-semibold">{status}</p>}
       </div>
 
-      <div className="bg-slate-800 rounded-2xl p-6 overflow-auto">
+      <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 overflow-auto text-slate-900">
         <table className="w-full border text-sm min-w-[1000px]">
-          <thead className="bg-slate-950">
+          <thead className="bg-slate-800 text-white">
             <tr>
               <th className="border p-2 w-32">Madde</th>
               <th className="border p-2">Faaliyet</th>
@@ -206,7 +206,7 @@ export default function DailyPage() {
                   <input
                     value={r.text}
                     onChange={(e) => updateRow(index, e.target.value)}
-                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2"
+                    className="w-full bg-white border border-slate-300 text-slate-900 rounded-lg px-3 py-2"
                     placeholder="Faaliyet giriniz..."
                   />
                 </td>

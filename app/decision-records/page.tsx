@@ -317,40 +317,28 @@ export default function DecisionRecordsPage() {
 
   return (
   <main className="min-h-screen bg-slate-100 flex">
-    <Sidebar
-      fullName="Barış Nevruz"
-      role="Yönetici"
-    />
+    <Sidebar fullName="Barış Nevruz" role="Yönetici" />
 
     <section className="flex-1 p-8 overflow-x-hidden">
-
-      <div className="bg-slate-800 rounded-2xl p-6 mb-6">
-
-        <h1 className="text-3xl font-bold">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-6 text-slate-900">
+        <h1 className="text-3xl font-bold text-slate-900">
           Karar Kayıtları
         </h1>
-
       </div>
 
-      <div className="bg-slate-800 rounded-2xl p-6 mb-6">
-
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-
           <input
             value={search}
-            onChange={(e) =>
-              setSearch(e.target.value)
-            }
+            onChange={(e) => setSearch(e.target.value)}
             placeholder="Ara..."
-            className="bg-slate-700 border border-slate-600 rounded-xl px-4 py-3"
+            className="bg-white border border-slate-300 text-slate-900 placeholder:text-slate-400 rounded-xl px-4 py-3"
           />
 
           <select
             value={statusFilter}
-            onChange={(e) =>
-              setStatusFilter(e.target.value)
-            }
-            className="bg-slate-700 border border-slate-600 rounded-xl px-4 py-3"
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3"
           >
             <option>Tümü</option>
             <option>Bekliyor</option>
@@ -362,151 +350,113 @@ export default function DecisionRecordsPage() {
 
           <button
             onClick={loadRecords}
-            className="bg-blue-600 rounded-xl font-semibold"
+            className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold px-4 py-3"
           >
             Listeyi Yenile
           </button>
 
           <button
             onClick={createPdfReport}
-            className="bg-red-600 rounded-xl font-semibold"
+            className="bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold px-4 py-3"
           >
             PDF Rapor
           </button>
 
           <button
             onClick={sendLateTaskMail}
-            className="bg-orange-600 rounded-xl font-semibold"
+            className="bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-semibold px-4 py-3"
           >
             Gecikenleri Mail Gönder
           </button>
-
         </div>
-
       </div>
 
-      <div className="bg-slate-800 rounded-2xl p-6 overflow-auto">
-
-        <table className="w-full border text-sm min-w-[1800px]">
-
-          <thead className="bg-slate-950">
-
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 overflow-auto text-slate-900">
+        <table className="w-full border border-slate-300 text-sm min-w-[1800px]">
+          <thead className="bg-slate-800 text-white">
             <tr>
-              <th className="border p-2">No</th>
-              <th className="border p-2">Karar</th>
-              <th className="border p-2">Sorumlu</th>
-              <th className="border p-2">Birim</th>
-              <th className="border p-2">Termin</th>
-              <th className="border p-2">Gecikme</th>
-              <th className="border p-2">Durum</th>
-              <th className="border p-2">Not</th>
-              <th className="border p-2">İşlem</th>
+              <th className="border border-slate-300 p-2">No</th>
+              <th className="border border-slate-300 p-2">Karar</th>
+              <th className="border border-slate-300 p-2">Sorumlu</th>
+              <th className="border border-slate-300 p-2">Birim</th>
+              <th className="border border-slate-300 p-2">Termin</th>
+              <th className="border border-slate-300 p-2">Gecikme</th>
+              <th className="border border-slate-300 p-2">Durum</th>
+              <th className="border border-slate-300 p-2">Not</th>
+              <th className="border border-slate-300 p-2">İşlem</th>
             </tr>
-
           </thead>
 
           <tbody>
-
             {filteredRecords.map((r, i) => {
-
               const lateStatus = isLate(r);
 
               return (
                 <tr
                   key={r.id}
-                  className={
-                    lateStatus
-                      ? "bg-red-900/30"
-                      : ""
-                  }
+                  className={lateStatus ? "bg-red-50 text-slate-900" : "bg-white text-slate-900"}
                 >
-
-                  <td className="border p-2">
+                  <td className="border border-slate-300 p-2 text-center">
                     {i + 1}
                   </td>
 
-                  <td className="border p-2">
+                  <td className="border border-slate-300 p-2">
                     {r.decision}
                   </td>
 
-                  <td className="border p-2">
+                  <td className="border border-slate-300 p-2">
                     {r.responsible}
                   </td>
 
-                  <td className="border p-2">
+                  <td className="border border-slate-300 p-2">
                     {r.department}
                   </td>
 
-                  <td className="border p-2">
+                  <td className="border border-slate-300 p-2">
                     {r.deadline}
                   </td>
 
-                  <td className="border p-2">
-                    {lateStatus
-                      ? `${getLateDays(r)} gün`
-                      : "-"}
+                  <td className="border border-slate-300 p-2 font-semibold">
+                    {lateStatus ? `${getLateDays(r)} gün` : "-"}
                   </td>
 
-                  <td className="border p-2">
-
+                  <td className="border border-slate-300 p-2">
                     <select
                       value={r.status}
-                      onChange={(e) =>
-                        updateStatus(
-                          r.id,
-                          e.target.value
-                        )
-                      }
-                      className="bg-slate-700 border border-slate-600 rounded-lg px-2 py-1"
+                      onChange={(e) => updateStatus(r.id, e.target.value)}
+                      className="bg-white border border-slate-300 text-slate-900 rounded-lg px-2 py-1"
                     >
                       <option>Bekliyor</option>
                       <option>Devam Ediyor</option>
                       <option>Tamamlandı</option>
                       <option>İptal</option>
                     </select>
-
                   </td>
 
-                  <td className="border p-2">
-
+                  <td className="border border-slate-300 p-2">
                     <input
-                      value={
-                        r.managerNote || ""
-                      }
-                      onChange={(e) =>
-                        updateManagerNote(
-                          r.id,
-                          e.target.value
-                        )
-                      }
-                      className="bg-slate-700 border border-slate-600 rounded-lg px-2 py-1 w-full"
+                      value={r.managerNote || ""}
+                      onChange={(e) => updateManagerNote(r.id, e.target.value)}
+                      className="bg-white border border-slate-300 text-slate-900 rounded-lg px-2 py-1 w-full"
                     />
-
                   </td>
 
-                  <td className="border p-2 text-center">
-
+                  <td className="border border-slate-300 p-2 text-center">
                     <button
-                      onClick={() =>
-                        deleteRecord(r.id)
-                      }
-                      className="bg-red-600 px-3 py-1 rounded-lg"
+                      onClick={() => deleteRecord(r.id)}
+                      className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg"
                     >
                       Sil
                     </button>
-
                   </td>
-
                 </tr>
               );
             })}
-
           </tbody>
-
         </table>
-
       </div>
     </section>
   </main>
 );
+
 }

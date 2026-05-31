@@ -313,9 +313,9 @@ export default function SettingsPage() {
     />
 
     <section className="flex-1 p-8 overflow-x-hidden">
-      <div className="bg-slate-800 rounded-2xl p-8 mb-6">
+      <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-8 mb-6 text-slate-900">
         <h1 className="text-3xl font-bold">Ayarlar</h1>
-        <p className="text-slate-300 mt-2">
+        <p className="text-slate-600 mt-2">
           Sistem kullanıcıları, WhatsApp, mail ve genel ayarlar.
         </p>
       </div>
@@ -480,8 +480,8 @@ export default function SettingsPage() {
 
 function Panel({ title, children, wide }: any) {
   return (
-    <div className={`bg-slate-800 rounded-2xl p-6 ${wide ? "xl:col-span-2" : ""}`}>
-      <h2 className="text-xl font-bold mb-4">{title}</h2>
+    <div className={`bg-white border border-slate-200 shadow-sm rounded-2xl p-6 text-slate-900 ${wide ? "xl:col-span-2" : ""}`}>
+      <h2 className="text-xl font-bold mb-4 text-slate-900">{title}</h2>
       {children}
     </div>
   );
@@ -489,11 +489,11 @@ function Panel({ title, children, wide }: any) {
 
 function Table({ headers, children }: any) {
   return (
-    <table className="w-full border text-sm">
-      <thead className="bg-slate-950">
+    <table className="w-full border border-slate-300 text-sm text-slate-900">
+      <thead className="bg-slate-800 text-white">
         <tr>
           {headers.map((h: string) => (
-            <th key={h} className="border p-2">
+            <th key={h} className="border border-slate-300 p-2">
               {h}
             </th>
           ))}
@@ -502,6 +502,5 @@ function Table({ headers, children }: any) {
 
       <tbody>{children}</tbody>
     </table>
-    
   );
 }

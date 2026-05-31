@@ -1,5 +1,6 @@
 "use client";
 
+import Sidebar from "@/components/Sidebar";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
@@ -55,6 +56,7 @@ export default function DecisionsPage() {
     setGroups(activeGroups);
 
     const now = new Date();
+
     setMeetingNo(
       "TK-" +
         now.getFullYear().toString() +
@@ -80,51 +82,43 @@ export default function DecisionsPage() {
     );
   }
 
-  
+  async function saveAllDecisions() {
+    const filledRows = getFilledRows();
 
-    
-async function saveAllDecisions() {
-  const filledRows = getFilledRows();
+    if (filledRows.length === 0) {
+      alert("Kaydedilecek karar bulunamadı.");
+      return;
+    }
 
-  if (filledRows.length === 0) {
-    alert("Kaydedilecek karar bulunamadı.");
-    return;
+    const newRecords = filledRows.map((r) => ({
+      meeting_date: meetingDate,
+      meeting_no: meetingNo,
+      meeting_type: meetingType,
+      meeting_place: meetingPlace,
+      general_note: generalNote,
+      decision: r.decision,
+      responsible: r.responsible,
+      department: r.department,
+      priority: r.priority,
+      start_date: r.startDate,
+      deadline: r.deadline,
+      status: r.status,
+      manager_note: r.managerNote,
+      mail_group: r.mailGroup,
+      mail_sent: false,
+    }));
+
+    const { error } = await supabase.from("decisions").insert(newRecords);
+
+    if (error) {
+      alert("Supabase kayıt hatası: " + error.message);
+      return;
+    }
+
+    setStatusText(`${newRecords.length} adet karar Supabase veritabanına kaydedildi.`);
+    setRows(emptyRows());
   }
 
-  const newRecords = filledRows.map((r) => ({
-    meeting_date: meetingDate,
-    meeting_no: meetingNo,
-    meeting_type: meetingType,
-    meeting_place: meetingPlace,
-    general_note: generalNote,
-
-    decision: r.decision,
-    responsible: r.responsible,
-    department: r.department,
-    priority: r.priority,
-    start_date: r.startDate,
-    deadline: r.deadline,
-    status: r.status,
-    manager_note: r.managerNote,
-    mail_group: r.mailGroup,
-    mail_sent: false,
-  }));
-
-  const { error } = await supabase
-    .from("decisions")
-    .insert(newRecords);
-
-  if (error) {
-    alert("Supabase kayıt hatası: " + error.message);
-    return;
-  }
-
-  setStatusText(
-    `${newRecords.length} adet karar Supabase veritabanına kaydedildi.`
-  );
-
-  setRows(emptyRows());
-}
   async function sendMeetingMail() {
     const filledRows = getFilledRows();
 
@@ -232,138 +226,214 @@ async function saveAllDecisions() {
       return;
     }
 
-    saveAllDecisions();
-    setRows(emptyRows());
+    await saveAllDecisions();
     alert("Toplantı kararları tek mail olarak gönderildi ve kayıt altına alındı.");
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 p-8">
-      <div className="bg-white rounded-2xl shadow p-8 mb-6">
-        <h1 className="text-3xl font-bold mb-8">Toplantı Karar Giriş Ekranı</h1>
+    <main className="min-h-screen bg-slate-100 flex">
+      <Sidebar fullName="Barış Nevruz" role="Yönetici" />
 
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <div>
-            <label className="font-semibold text-white">Toplantı Tarihi</label>
-            <input type="date" value={meetingDate} onChange={(e) => setMeetingDate(e.target.value)} className="w-full border rounded-xl px-4 py-3 mt-2" />
-          </div>
+      <section className="flex-1 p-8 overflow-x-hidden">
+        <div className="max-w-7xl mx-auto bg-white rounded-2xl border border-slate-200 shadow-sm p-8 mb-6 text-slate-900">
+          <h1 className="text-3xl font-bold mb-8 text-slate-900">
+            Toplantı Karar Giriş Ekranı
+          </h1>
 
-          <div>
-            <label className="font-semibold text-white">Toplantı No</label>
-            <input value={meetingNo} onChange={(e) => setMeetingNo(e.target.value)} className="w-full border rounded-xl px-4 py-3 mt-2" />
-          </div>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div>
+              <label className="font-semibold text-slate-800">Toplantı Tarihi</label>
+              <input
+                type="date"
+                value={meetingDate}
+                onChange={(e) => setMeetingDate(e.target.value)}
+                className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 mt-2"
+              />
+            </div>
 
-          <div>
-            <label className="font-semibold text-white">Toplantı Türü</label>
-            <select value={meetingType} onChange={(e) => setMeetingType(e.target.value)} className="w-full border rounded-xl px-4 py-3 mt-2">
-              <option>Yönetim</option>
-              <option>Üretim</option>
-              <option>Kalite</option>
-              <option>Sevkiyat</option>
-            </select>
-          </div>
+            <div>
+              <label className="font-semibold text-slate-800">Toplantı No</label>
+              <input
+                value={meetingNo}
+                onChange={(e) => setMeetingNo(e.target.value)}
+                className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 mt-2"
+              />
+            </div>
 
-          <div>
-            <label className="font-semibold text-white">Toplantı Yeri</label>
-            <input value={meetingPlace} onChange={(e) => setMeetingPlace(e.target.value)} className="w-full border rounded-xl px-4 py-3 mt-2" />
-          </div>
+            <div>
+              <label className="font-semibold text-slate-800">Toplantı Türü</label>
+              <select
+                value={meetingType}
+                onChange={(e) => setMeetingType(e.target.value)}
+                className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 mt-2"
+              >
+                <option>Yönetim</option>
+                <option>Üretim</option>
+                <option>Kalite</option>
+                <option>Sevkiyat</option>
+              </select>
+            </div>
 
-          <div>
-            <label className="font-semibold text-white">Genel Not</label>
-            <input value={generalNote} onChange={(e) => setGeneralNote(e.target.value)} className="w-full border rounded-xl px-4 py-3 mt-2" />
+            <div>
+              <label className="font-semibold text-slate-800">Toplantı Yeri</label>
+              <input
+                value={meetingPlace}
+                onChange={(e) => setMeetingPlace(e.target.value)}
+                className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 mt-2"
+              />
+            </div>
+
+            <div>
+              <label className="font-semibold text-slate-800">Genel Not</label>
+              <input
+                value={generalNote}
+                onChange={(e) => setGeneralNote(e.target.value)}
+                className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 mt-2"
+              />
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="bg-white rounded-2xl shadow p-6 overflow-auto">
-        <h2 className="text-2xl font-bold mb-6">Kararlar</h2>
+        <div className="max-w-7xl mx-auto bg-white rounded-2xl border border-slate-200 shadow-sm p-6 overflow-auto text-slate-900">
+          <h2 className="text-2xl font-bold mb-6 text-slate-900">Kararlar</h2>
 
-        <table className="w-full border text-sm min-w-[1900px]">
-          <thead className="bg-slate-800 text-white">
-            <tr>
-              <th className="border p-2">No</th>
-              <th className="border p-2">Karar Maddesi</th>
-              <th className="border p-2">Sorumlu Kişi</th>
-              <th className="border p-2">Birim</th>
-              <th className="border p-2">Öncelik</th>
-              <th className="border p-2">Başlangıç</th>
-              <th className="border p-2">Termin</th>
-              <th className="border p-2">Durum</th>
-              <th className="border p-2">Yönetici Notu</th>
-              <th className="border p-2">Mail Grubu</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {rows.map((row, index) => (
-              <tr key={index}>
-                <td className="border p-2 text-center">{row.no}</td>
-
-                <td className="border p-2">
-                  <input value={row.decision} onChange={(e) => updateRow(index, "decision", e.target.value)} className="w-full p-2 border rounded" />
-                </td>
-
-                <td className="border p-2">
-                  <input value={row.responsible} onChange={(e) => updateRow(index, "responsible", e.target.value)} className="w-full p-2 border rounded" />
-                </td>
-
-                <td className="border p-2">
-                  <input value={row.department} onChange={(e) => updateRow(index, "department", e.target.value)} className="w-full p-2 border rounded" />
-                </td>
-
-                <td className="border p-2">
-                  <select value={row.priority} onChange={(e) => updateRow(index, "priority", e.target.value)} className="w-full p-2 border rounded">
-                    <option>Normal</option>
-                    <option>Yüksek</option>
-                    <option>Kritik</option>
-                  </select>
-                </td>
-
-                <td className="border p-2">
-                  <input type="date" value={row.startDate} onChange={(e) => updateRow(index, "startDate", e.target.value)} className="w-full p-2 border rounded" />
-                </td>
-
-                <td className="border p-2">
-                  <input type="date" value={row.deadline} onChange={(e) => updateRow(index, "deadline", e.target.value)} className="w-full p-2 border rounded" />
-                </td>
-
-                <td className="border p-2">
-                  <select value={row.status} onChange={(e) => updateRow(index, "status", e.target.value)} className="w-full p-2 border rounded">
-                    <option>Bekliyor</option>
-                    <option>Devam Ediyor</option>
-                    <option>Tamamlandı</option>
-                    <option>İptal</option>
-                  </select>
-                </td>
-
-                <td className="border p-2">
-                  <input value={row.managerNote} onChange={(e) => updateRow(index, "managerNote", e.target.value)} className="w-full p-2 border rounded" />
-                </td>
-
-                <td className="border p-2">
-                  <select value={row.mailGroup} onChange={(e) => updateRow(index, "mailGroup", e.target.value)} className="w-full p-2 border rounded">
-                    {groups.map((g) => (
-                      <option key={g.id}>{g.groupName}</option>
-                    ))}
-                  </select>
-                </td>
+          <table className="w-full border border-slate-300 text-sm min-w-[1900px]">
+            <thead className="bg-slate-800 text-white">
+              <tr>
+                <th className="border border-slate-300 p-2">No</th>
+                <th className="border border-slate-300 p-2">Karar Maddesi</th>
+                <th className="border border-slate-300 p-2">Sorumlu Kişi</th>
+                <th className="border border-slate-300 p-2">Birim</th>
+                <th className="border border-slate-300 p-2">Öncelik</th>
+                <th className="border border-slate-300 p-2">Başlangıç</th>
+                <th className="border border-slate-300 p-2">Termin</th>
+                <th className="border border-slate-300 p-2">Durum</th>
+                <th className="border border-slate-300 p-2">Yönetici Notu</th>
+                <th className="border border-slate-300 p-2">Mail Grubu</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
 
-        <div className="flex gap-4">
-          <button onClick={saveAllDecisions} className="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-semibold text-white">
-            Toplu Kaydet
-          </button>
+            <tbody>
+              {rows.map((row, index) => (
+                <tr key={index} className="bg-white">
+                  <td className="border border-slate-300 p-2 text-center text-slate-900">
+                    {row.no}
+                  </td>
 
-          <button onClick={sendMeetingMail} className="mt-6 bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-xl font-semibold text-white">
-            Toplantı Kararlarını Mail Gönder
-          </button>
+                  <td className="border border-slate-300 p-2">
+                    <input
+                      value={row.decision}
+                      onChange={(e) => updateRow(index, "decision", e.target.value)}
+                      className="w-full bg-white text-slate-900 p-2 border border-slate-300 rounded"
+                    />
+                  </td>
+
+                  <td className="border border-slate-300 p-2">
+                    <input
+                      value={row.responsible}
+                      onChange={(e) => updateRow(index, "responsible", e.target.value)}
+                      className="w-full bg-white text-slate-900 p-2 border border-slate-300 rounded"
+                    />
+                  </td>
+
+                  <td className="border border-slate-300 p-2">
+                    <input
+                      value={row.department}
+                      onChange={(e) => updateRow(index, "department", e.target.value)}
+                      className="w-full bg-white text-slate-900 p-2 border border-slate-300 rounded"
+                    />
+                  </td>
+
+                  <td className="border border-slate-300 p-2">
+                    <select
+                      value={row.priority}
+                      onChange={(e) => updateRow(index, "priority", e.target.value)}
+                      className="w-full bg-white text-slate-900 p-2 border border-slate-300 rounded"
+                    >
+                      <option>Normal</option>
+                      <option>Yüksek</option>
+                      <option>Kritik</option>
+                    </select>
+                  </td>
+
+                  <td className="border border-slate-300 p-2">
+                    <input
+                      type="date"
+                      value={row.startDate}
+                      onChange={(e) => updateRow(index, "startDate", e.target.value)}
+                      className="w-full bg-white text-slate-900 p-2 border border-slate-300 rounded"
+                    />
+                  </td>
+
+                  <td className="border border-slate-300 p-2">
+                    <input
+                      type="date"
+                      value={row.deadline}
+                      onChange={(e) => updateRow(index, "deadline", e.target.value)}
+                      className="w-full bg-white text-slate-900 p-2 border border-slate-300 rounded"
+                    />
+                  </td>
+
+                  <td className="border border-slate-300 p-2">
+                    <select
+                      value={row.status}
+                      onChange={(e) => updateRow(index, "status", e.target.value)}
+                      className="w-full bg-white text-slate-900 p-2 border border-slate-300 rounded"
+                    >
+                      <option>Bekliyor</option>
+                      <option>Devam Ediyor</option>
+                      <option>Tamamlandı</option>
+                      <option>İptal</option>
+                    </select>
+                  </td>
+
+                  <td className="border border-slate-300 p-2">
+                    <input
+                      value={row.managerNote}
+                      onChange={(e) => updateRow(index, "managerNote", e.target.value)}
+                      className="w-full bg-white text-slate-900 p-2 border border-slate-300 rounded"
+                    />
+                  </td>
+
+                  <td className="border border-slate-300 p-2">
+                    <select
+                      value={row.mailGroup}
+                      onChange={(e) => updateRow(index, "mailGroup", e.target.value)}
+                      className="w-full bg-white text-slate-900 p-2 border border-slate-300 rounded"
+                    >
+                      {groups.map((g) => (
+                        <option key={g.id}>{g.groupName}</option>
+                      ))}
+                    </select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="flex flex-wrap gap-4 mt-6">
+            <button
+              onClick={saveAllDecisions}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-semibold"
+            >
+              Toplu Kaydet
+            </button>
+
+            <button
+              onClick={sendMeetingMail}
+              className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-xl font-semibold"
+            >
+              Toplantı Kararlarını Mail Gönder
+            </button>
+          </div>
+
+          {statusText && (
+            <p className="mt-4 text-sm font-semibold text-green-700">
+              {statusText}
+            </p>
+          )}
         </div>
-
-        {statusText && <p className="mt-4 text-sm text-slate-300">{statusText}</p>}
-      </div>
+      </section>
     </main>
   );
 }

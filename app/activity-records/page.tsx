@@ -1,4 +1,5 @@
 "use client";
+
 import Sidebar from "@/components/Sidebar";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -84,9 +85,7 @@ export default function ActivityRecordsPage() {
     const message = mesajHazirla();
     if (!message) return;
 
-    const contact = contacts.find(
-      (c) => String(c.id) === selectedContactId
-    );
+    const contact = contacts.find((c) => String(c.id) === selectedContactId);
 
     if (!contact) {
       alert("Lütfen WhatsApp kişisi seçiniz.");
@@ -106,9 +105,7 @@ export default function ActivityRecordsPage() {
     const message = mesajHazirla();
     if (!message) return;
 
-    const group = groups.find(
-      (g) => String(g.id) === selectedGroupId
-    );
+    const group = groups.find((g) => String(g.id) === selectedGroupId);
 
     if (!group) {
       alert("Lütfen WhatsApp grubu seçiniz.");
@@ -153,10 +150,7 @@ export default function ActivityRecordsPage() {
   async function kayitSil(id: number) {
     if (!confirm("Bu faaliyet kaydını silmek istiyor musunuz?")) return;
 
-    const { error } = await supabase
-      .from("daily_activities")
-      .delete()
-      .eq("id", id);
+    const { error } = await supabase.from("daily_activities").delete().eq("id", id);
 
     if (error) {
       alert("Silme hatası: " + error.message);
@@ -167,154 +161,151 @@ export default function ActivityRecordsPage() {
   }
 
   return (
-  <main className="min-h-screen bg-slate-100 flex">
-    <Sidebar
-      fullName="Barış Nevruz"
-      role="Yönetici"
-    />
+    <main className="min-h-screen bg-slate-100 flex">
+      <Sidebar fullName="Barış Nevruz" role="Yönetici" />
 
-    <section className="flex-1 p-8 overflow-x-hidden">
-    
-      <div className="bg-slate-800 rounded-2xl p-8 mb-6">
-        <h1 className="text-3xl font-bold">
-          Günlük Faaliyet Kayıtları
-        </h1>
+      <section className="flex-1 p-8 overflow-x-hidden">
+        <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-8 mb-6 text-slate-900">
+          <h1 className="text-3xl font-bold text-slate-900">
+            Günlük Faaliyet Kayıtları
+          </h1>
 
-        <p className="text-slate-300 mt-2">
-          Tarihe göre faaliyetleri görüntüleyin ve WhatsApp üzerinden gönderin.
-        </p>
-      </div>
-
-      <div className="bg-slate-800 rounded-2xl p-6 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <div>
-            <label className="font-semibold">Tarih Seç</label>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 mt-2"
-            />
-          </div>
-
-          <div>
-            <label className="font-semibold">WhatsApp Kişisi</label>
-            <select
-              value={selectedContactId}
-              onChange={(e) => setSelectedContactId(e.target.value)}
-              className="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 mt-2"
-            >
-              <option value="">Kişi seçiniz</option>
-              {contacts.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} - {c.phone}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <button
-            onClick={kisiyeWhatsappGonder}
-            className="bg-emerald-600 hover:bg-emerald-700 rounded-xl font-semibold mt-8"
-          >
-            Kişiye Gönder
-          </button>
-
-          <div>
-            <label className="font-semibold">WhatsApp Grubu</label>
-            <select
-              value={selectedGroupId}
-              onChange={(e) => setSelectedGroupId(e.target.value)}
-              className="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 mt-2"
-            >
-              <option value="">Grup seçiniz</option>
-              {groups.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.groupName}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <button
-            onClick={grubaWhatsappGonder}
-            className="bg-green-700 hover:bg-green-800 rounded-xl font-semibold mt-8"
-          >
-            Gruba Gönder
-          </button>
+          <p className="text-slate-600 mt-2">
+            Tarihe göre faaliyetleri görüntüleyin ve WhatsApp üzerinden gönderin.
+          </p>
         </div>
-      </div>
 
-      <div className="bg-slate-800 rounded-2xl p-6 overflow-auto">
-        <table className="w-full border text-sm min-w-[1000px]">
-          <thead className="bg-slate-950">
-            <tr>
-              <th className="border p-2">Tarih</th>
-              <th className="border p-2">Madde</th>
-              <th className="border p-2">Faaliyet</th>
-              <th className="border p-2">Kaydeden</th>
-              <th className="border p-2">İşlem</th>
-            </tr>
-          </thead>
+        <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 mb-6 text-slate-900">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div>
+              <label className="font-semibold text-slate-800">Tarih Seç</label>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 mt-2"
+              />
+            </div>
 
-          <tbody>
-            {filtreliKayitlar.map((kayit) => (
-              <tr key={kayit.id}>
-                <td className="border p-2 text-center">
-                  {kayit.activity_date}
-                </td>
+            <div>
+              <label className="font-semibold text-slate-800">
+                WhatsApp Kişisi
+              </label>
+              <select
+                value={selectedContactId}
+                onChange={(e) => setSelectedContactId(e.target.value)}
+                className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 mt-2"
+              >
+                <option value="">Kişi seçiniz</option>
+                {contacts.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} - {c.phone}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-                <td className="border p-2 text-center">
-                  Madde {kayit.item_no}
-                </td>
+            <button
+              onClick={kisiyeWhatsappGonder}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold mt-8 px-4 py-3"
+            >
+              Kişiye Gönder
+            </button>
 
-                <td className="border p-2">
-                  {kayit.activity_text}
-                </td>
+            <div>
+              <label className="font-semibold text-slate-800">
+                WhatsApp Grubu
+              </label>
+              <select
+                value={selectedGroupId}
+                onChange={(e) => setSelectedGroupId(e.target.value)}
+                className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 mt-2"
+              >
+                <option value="">Grup seçiniz</option>
+                {groups.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.groupName}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-                <td className="border p-2 text-center">
-                  {kayit.created_by}
-                </td>
+            <button
+              onClick={grubaWhatsappGonder}
+              className="bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold mt-8 px-4 py-3"
+            >
+              Gruba Gönder
+            </button>
+          </div>
+        </div>
 
-                <td className="border p-2 text-center">
-                  <div className="flex justify-center gap-2">
-                    <button
-                      onClick={() =>
-                        kayitGuncelle(
-                          kayit.id,
-                          kayit.activity_text
-                        )
-                      }
-                      className="bg-yellow-500 hover:bg-yellow-600 text-black px-3 py-1 rounded-lg font-semibold"
-                    >
-                      Düzenle
-                    </button>
-
-                    <button
-                      onClick={() => kayitSil(kayit.id)}
-                      className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded-lg"
-                    >
-                      Sil
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-
-            {filtreliKayitlar.length === 0 && (
+        <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 overflow-auto text-slate-900">
+          <table className="w-full border border-slate-300 text-sm min-w-[1000px]">
+            <thead className="bg-slate-800 text-white">
               <tr>
-                <td
-                  colSpan={5}
-                  className="border p-4 text-center text-slate-400"
-                >
-                  Seçilen tarihte kayıt bulunamadı.
-                </td>
+                <th className="border border-slate-300 p-2">Tarih</th>
+                <th className="border border-slate-300 p-2">Madde</th>
+                <th className="border border-slate-300 p-2">Faaliyet</th>
+                <th className="border border-slate-300 p-2">Kaydeden</th>
+                <th className="border border-slate-300 p-2">İşlem</th>
               </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-       </section>
-  </main>
-);
+            </thead>
+
+            <tbody>
+              {filtreliKayitlar.map((kayit) => (
+                <tr key={kayit.id} className="bg-white text-slate-900">
+                  <td className="border border-slate-300 p-2 text-center">
+                    {kayit.activity_date}
+                  </td>
+
+                  <td className="border border-slate-300 p-2 text-center">
+                    Madde {kayit.item_no}
+                  </td>
+
+                  <td className="border border-slate-300 p-2">
+                    {kayit.activity_text}
+                  </td>
+
+                  <td className="border border-slate-300 p-2 text-center">
+                    {kayit.created_by}
+                  </td>
+
+                  <td className="border border-slate-300 p-2 text-center">
+                    <div className="flex justify-center gap-2">
+                      <button
+                        onClick={() =>
+                          kayitGuncelle(kayit.id, kayit.activity_text)
+                        }
+                        className="bg-yellow-500 hover:bg-yellow-600 text-black px-3 py-1 rounded-lg font-semibold"
+                      >
+                        Düzenle
+                      </button>
+
+                      <button
+                        onClick={() => kayitSil(kayit.id)}
+                        className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg font-semibold"
+                      >
+                        Sil
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+
+              {filtreliKayitlar.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="border border-slate-300 p-4 text-center text-slate-500"
+                  >
+                    Seçilen tarihte kayıt bulunamadı.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  );
 }

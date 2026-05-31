@@ -1,4 +1,5 @@
 "use client";
+
 import Sidebar from "@/components/Sidebar";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -140,170 +141,181 @@ export default function MeetingPage() {
 
     alert("Mail başarıyla gönderildi.");
   }
-return (
-  <main className="min-h-screen bg-slate-100 flex">
-    <Sidebar fullName="Barış Nevruz" role="Yönetici" />
 
-    <section className="flex-1 p-8 overflow-x-hidden">
-      <div className="max-w-6xl mx-auto bg-slate-800 rounded-2xl border border-slate-700 p-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold">
-              Toplantı Karar Girişi
-            </h1>
+  return (
+    <main className="min-h-screen bg-slate-100 flex">
+      <Sidebar fullName="Barış Nevruz" role="Yönetici" />
 
-            <p className="text-slate-300 mt-2">
-              Yönetim toplantı kararlarını kaydedin ve mail gönderin.
-            </p>
+      <section className="flex-1 p-8 overflow-x-hidden">
+        <div className="max-w-6xl mx-auto bg-white rounded-2xl border border-slate-200 p-8 shadow-sm text-slate-900">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900">
+                Toplantı Karar Girişi
+              </h1>
+
+              <p className="text-slate-600 mt-2">
+                Yönetim toplantı kararlarını kaydedin ve mail gönderin.
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <Link
+                href="/dashboard"
+                className="bg-slate-200 hover:bg-slate-300 text-slate-900 px-5 py-3 rounded-xl font-semibold"
+              >
+                Dashboard
+              </Link>
+
+              <Link
+                href="/"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-semibold"
+              >
+                Ana Sayfa
+              </Link>
+            </div>
           </div>
 
-          <div className="flex gap-3">
-            <Link
-              href="/dashboard"
-              className="bg-slate-700 hover:bg-slate-600 px-5 py-3 rounded-xl font-semibold"
-            >
-              Dashboard
-            </Link>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="md:col-span-2">
+              <label className="font-bold text-slate-800">
+                Karar Maddesi
+              </label>
 
-            <Link
-              href="/"
-              className="bg-blue-600 hover:bg-blue-700 px-5 py-3 rounded-xl font-semibold"
+              <textarea
+                value={kararMaddesi}
+                onChange={(e) => setKararMaddesi(e.target.value)}
+                className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 mt-2 h-32 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Toplantı kararını giriniz..."
+              />
+            </div>
+
+            <div>
+              <label className="font-bold text-slate-800">
+                İlgili Kişiler
+              </label>
+
+              <select
+                value={ilgiliKisiler}
+                onChange={(e) => setIlgiliKisiler(e.target.value)}
+                className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 mt-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Kişi seçiniz</option>
+
+                {people.map((p) => (
+                  <option key={p.id} value={p.name}>
+                    {p.name} - {p.department}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="font-bold text-slate-800">Birim</label>
+
+              <select
+                value={birim}
+                onChange={(e) => setBirim(e.target.value)}
+                className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 mt-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {birimler.map((x) => (
+                  <option key={x}>{x}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="font-bold text-slate-800">Öncelik</label>
+
+              <select
+                value={oncelik}
+                onChange={(e) => setOncelik(e.target.value)}
+                className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 mt-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option>Düşük</option>
+                <option>Normal</option>
+                <option>Yüksek</option>
+                <option>Kritik</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="font-bold text-slate-800">
+                Termin Tarihi
+              </label>
+
+              <input
+                type="date"
+                value={terminTarihi}
+                onChange={(e) => setTerminTarihi(e.target.value)}
+                className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 mt-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="font-bold text-slate-800">Durum</label>
+
+              <select
+                value={durum}
+                onChange={(e) => setDurum(e.target.value)}
+                className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 mt-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option>Bekliyor</option>
+                <option>Devam Ediyor</option>
+                <option>Tamamlandı</option>
+                <option>Gecikti</option>
+              </select>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="font-bold text-slate-800">
+                Yönetici Notu
+              </label>
+
+              <textarea
+                value={yoneticiNotu}
+                onChange={(e) => setYoneticiNotu(e.target.value)}
+                className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 mt-2 h-24 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Yönetici notu..."
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="font-bold text-slate-800">
+                Mail Gönderilecek Birim
+              </label>
+
+              <select
+                value={mailBirim}
+                onChange={(e) => setMailBirim(e.target.value)}
+                className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 mt-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {birimler.map((x) => (
+                  <option key={x}>{x}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-4 mt-8">
+            <button
+              onClick={kaydet}
+              disabled={loading}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-semibold disabled:opacity-50"
             >
-              Ana Sayfa
-            </Link>
+              {loading ? "Kaydediliyor..." : "Kararı Kaydet"}
+            </button>
+
+            <button
+              onClick={mailGonder}
+              disabled={loading}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-semibold disabled:opacity-50"
+            >
+              Mail Gönder
+            </button>
           </div>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div className="md:col-span-2">
-            <label className="font-bold">Karar Maddesi</label>
-
-            <textarea
-              value={kararMaddesi}
-              onChange={(e) => setKararMaddesi(e.target.value)}
-              className="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 mt-2 h-32"
-              placeholder="Toplantı kararını giriniz..."
-            />
-          </div>
-
-          <div>
-            <label className="font-bold">İlgili Kişiler</label>
-
-            <select
-              value={ilgiliKisiler}
-              onChange={(e) => setIlgiliKisiler(e.target.value)}
-              className="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 mt-2"
-            >
-              <option value="">Kişi seçiniz</option>
-
-              {people.map((p) => (
-                <option key={p.id} value={p.name}>
-                  {p.name} - {p.department}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="font-bold">Birim</label>
-
-            <select
-              value={birim}
-              onChange={(e) => setBirim(e.target.value)}
-              className="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 mt-2"
-            >
-              {birimler.map((x) => (
-                <option key={x}>{x}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="font-bold">Öncelik</label>
-
-            <select
-              value={oncelik}
-              onChange={(e) => setOncelik(e.target.value)}
-              className="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 mt-2"
-            >
-              <option>Düşük</option>
-              <option>Normal</option>
-              <option>Yüksek</option>
-              <option>Kritik</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="font-bold">Termin Tarihi</label>
-
-            <input
-              type="date"
-              value={terminTarihi}
-              onChange={(e) => setTerminTarihi(e.target.value)}
-              className="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 mt-2"
-            />
-          </div>
-
-          <div>
-            <label className="font-bold">Durum</label>
-
-            <select
-              value={durum}
-              onChange={(e) => setDurum(e.target.value)}
-              className="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 mt-2"
-            >
-              <option>Bekliyor</option>
-              <option>Devam Ediyor</option>
-              <option>Tamamlandı</option>
-              <option>Gecikti</option>
-            </select>
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="font-bold">Yönetici Notu</label>
-
-            <textarea
-              value={yoneticiNotu}
-              onChange={(e) => setYoneticiNotu(e.target.value)}
-              className="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 mt-2 h-24"
-              placeholder="Yönetici notu..."
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="font-bold">Mail Gönderilecek Birim</label>
-
-            <select
-              value={mailBirim}
-              onChange={(e) => setMailBirim(e.target.value)}
-              className="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 mt-2"
-            >
-              {birimler.map((x) => (
-                <option key={x}>{x}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-4 mt-8">
-          <button
-            onClick={kaydet}
-            disabled={loading}
-            className="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-xl font-semibold disabled:opacity-50"
-          >
-            {loading ? "Kaydediliyor..." : "Kararı Kaydet"}
-          </button>
-
-          <button
-            onClick={mailGonder}
-            disabled={loading}
-            className="bg-emerald-600 hover:bg-emerald-700 px-6 py-3 rounded-xl font-semibold disabled:opacity-50"
-          >
-            Mail Gönder
-          </button>
-        </div>
-      </div>
-          </section>
-  </main>
-);
+      </section>
+    </main>
+  );
 }
