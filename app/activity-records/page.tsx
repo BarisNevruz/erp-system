@@ -1,5 +1,5 @@
 "use client";
-
+import * as XLSX from "xlsx";
 import Sidebar from "@/components/Sidebar";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -29,7 +29,10 @@ export default function ActivityRecordsPage() {
 
   const [selectedContactId, setSelectedContactId] = useState("");
   const [selectedGroupId, setSelectedGroupId] = useState("");
-
+const [tumKayitlariGoster, setTumKayitlariGoster] = useState(false);
+const [arama, setArama] = useState("");
+const [baslangicTarih, setBaslangicTarih] = useState("");
+const [bitisTarih, setBitisTarih] = useState("");
   useEffect(() => {
     veriGetir();
 
@@ -57,10 +60,47 @@ export default function ActivityRecordsPage() {
     setKayitlar(data || []);
   }
 
-  const filtreliKayitlar = kayitlar.filter(
-    (k) => k.activity_date === selectedDate
-  );
+  const filtreliKayitlar = kayitlar.filter((k) => {
+  const tarihUygun = tumKayitlariGoster
+    ? true
+    : k.activity_date === selectedDate;
 
+  const aramaUygun = `${k.activity_date} ${k.item_no} ${k.activity_text} ${k.created_by}`
+    .toLowerCase()
+    .includes(arama.toLowerCase());
+
+  let aralikUygun = true;
+
+  if (baslangicTarih) {
+    aralikUygun = aralikUygun && k.activity_date >= baslangicTarih;
+  }
+
+  if (bitisTarih) {
+    aralikUygun = aralikUygun && k.activity_date <= bitisTarih;
+  }
+
+  return tarihUygun && aramaUygun && aralikUygun;
+});
+function excelAktar() {
+  if (filtreliKayitlar.length === 0) {
+    alert("Excel'e aktarılacak faaliyet kaydı bulunamadı.");
+    return;
+  }
+
+  const excelData = filtreliKayitlar.map((k, index) => ({
+    No: index + 1,
+    Tarih: k.activity_date,
+    Madde: k.item_no,
+    Faaliyet: k.activity_text,
+    Kaydeden: k.created_by,
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(excelData);
+  const workbook = XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Faaliyet Kayıtları");
+  XLSX.writeFile(workbook, "faaliyet_kayitlari.xlsx");
+}
   function mesajHazirla() {
     if (filtreliKayitlar.length === 0) {
       alert("Seçilen tarihte kayıt bulunamadı.");
@@ -176,7 +216,7 @@ export default function ActivityRecordsPage() {
         </div>
 
         <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 mb-6 text-slate-900">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
             <div>
               <label className="font-semibold text-slate-800">Tarih Seç</label>
               <input
@@ -186,7 +226,24 @@ export default function ActivityRecordsPage() {
                 className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 mt-2"
               />
             </div>
+<div>
+  <label className="font-semibold text-slate-800">
+    Tüm Kayıtlar
+  </label>
 
+  <button
+    onClick={() => setTumKayitlariGoster(!tumKayitlariGoster)}
+    className={
+      tumKayitlariGoster
+        ? "w-full bg-blue-600 text-white rounded-xl px-4 py-3 mt-2 font-semibold"
+        : "w-full bg-slate-700 text-white rounded-xl px-4 py-3 mt-2 font-semibold"
+    }
+  >
+    {tumKayitlariGoster
+      ? "Tüm Kayıtlar Açık"
+      : "Sadece Seçili Tarih"}
+  </button>
+</div>
             <div>
               <label className="font-semibold text-slate-800">
                 WhatsApp Kişisi
@@ -238,7 +295,39 @@ export default function ActivityRecordsPage() {
             </button>
           </div>
         </div>
+<div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 mb-6 text-slate-900">
+  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
 
+    <input
+      value={arama}
+      onChange={(e) => setArama(e.target.value)}
+      placeholder="Faaliyet ara..."
+      className="bg-white border border-slate-300 rounded-xl px-4 py-3"
+    />
+
+    <input
+      type="date"
+      value={baslangicTarih}
+      onChange={(e) => setBaslangicTarih(e.target.value)}
+      className="bg-white border border-slate-300 rounded-xl px-4 py-3"
+    />
+
+    <input
+      type="date"
+      value={bitisTarih}
+      onChange={(e) => setBitisTarih(e.target.value)}
+      className="bg-white border border-slate-300 rounded-xl px-4 py-3"
+    />
+
+    <button
+      onClick={excelAktar}
+      className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold px-4 py-3"
+    >
+      Excel'e Aktar
+    </button>
+
+  </div>
+</div>
         <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 overflow-auto text-slate-900">
           <table className="w-full border border-slate-300 text-sm min-w-[1000px]">
             <thead className="bg-slate-800 text-white">
