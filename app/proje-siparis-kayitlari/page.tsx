@@ -107,13 +107,7 @@ const [bitisTarih, setBitisTarih] = useState("");
   async function guncelle() {
     if (!duzenlenen) return;
 
-    const toplam =
-      Number(duzenlenen.siyah_sac_kg || 0) +
-      Number(duzenlenen.hardox_kg || 0) +
-      Number(duzenlenen.mc700_strenx_kg || 0) +
-      Number(duzenlenen.aluminyum_kg || 0) +
-      Number(duzenlenen.crni_kg || 0) +
-      Number(duzenlenen.talasli_imalat_kg || 0);
+    
 
     const { error } = await supabase
       .from("project_orders")
@@ -129,7 +123,7 @@ const [bitisTarih, setBitisTarih] = useState("");
         aluminyum_kg: Number(duzenlenen.aluminyum_kg || 0),
         crni_kg: Number(duzenlenen.crni_kg || 0),
         talasli_imalat_kg: Number(duzenlenen.talasli_imalat_kg || 0),
-        toplam_malzeme_kg: toplam,
+        
         musteri_adi: duzenlenen.musteri_adi,
         tamamlanma_yuzdesi: Number(duzenlenen.tamamlanma_yuzdesi || 0),
       })
