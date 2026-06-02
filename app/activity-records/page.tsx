@@ -1,8 +1,17 @@
 "use client";
-import * as XLSX from "xlsx";
+
 import Sidebar from "@/components/Sidebar";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import * as XLSX from "xlsx";
+
+type ActivityRecord = {
+  id: number;
+  activity_date: string;
+  item_no: number;
+  activity_text: string;
+  created_by?: string;
+};
 
 type WhatsAppContact = {
   id: number;
@@ -19,7 +28,7 @@ type WhatsAppGroup = {
 };
 
 export default function ActivityRecordsPage() {
-  const [kayitlar, setKayitlar] = useState<any[]>([]);
+  const [kayitlar, setKayitlar] = useState<ActivityRecord[]>([]);
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0]
   );
@@ -29,10 +38,12 @@ export default function ActivityRecordsPage() {
 
   const [selectedContactId, setSelectedContactId] = useState("");
   const [selectedGroupId, setSelectedGroupId] = useState("");
-const [tumKayitlariGoster, setTumKayitlariGoster] = useState(false);
-const [arama, setArama] = useState("");
-const [baslangicTarih, setBaslangicTarih] = useState("");
-const [bitisTarih, setBitisTarih] = useState("");
+
+  const [tumKayitlariGoster, setTumKayitlariGoster] = useState(false);
+  const [arama, setArama] = useState("");
+  const [baslangicTarih, setBaslangicTarih] = useState("");
+  const [bitisTarih, setBitisTarih] = useState("");
+
   useEffect(() => {
     veriGetir();
 
@@ -61,48 +72,59 @@ const [bitisTarih, setBitisTarih] = useState("");
   }
 
   const filtreliKayitlar = kayitlar.filter((k) => {
-  const tarihUygun = tumKayitlariGoster
-    ? true
-    : k.activity_date === selectedDate;
+    let tarihUygun = true;
 
-  const aramaUygun = `${k.activity_date} ${k.item_no} ${k.activity_text} ${k.created_by}`
-    .toLowerCase()
-    .includes(arama.toLowerCase());
+    if (baslangicTarih || bitisTarih) {
+      if (baslangicTarih) {
+        tarihUygun = tarihUygun && k.activity_date >= baslangicTarih;
+      }
 
-  let aralikUygun = true;
+      if (bitisTarih) {
+        tarihUygun = tarihUygun && k.activity_date <= bitisTarih;
+      }
+    } else {
+      tarihUygun = tumKayitlariGoster
+        ? true
+        : k.activity_date === selectedDate;
+    }
 
-  if (baslangicTarih) {
-    aralikUygun = aralikUygun && k.activity_date >= baslangicTarih;
-  }
+    const aramaUygun =
+      `${k.activity_date || ""} ${k.item_no || ""} ${k.activity_text || ""} ${
+        k.created_by || ""
+      }`
+        .toLowerCase()
+        .includes(arama.toLowerCase());
 
-  if (bitisTarih) {
-    aralikUygun = aralikUygun && k.activity_date <= bitisTarih;
-  }
+    return tarihUygun && aramaUygun;
+  });
 
-  return tarihUygun && aramaUygun && aralikUygun;
-});
-function excelAktar() {
-  if (filtreliKayitlar.length === 0) {
-    alert("Excel'e aktarılacak faaliyet kaydı bulunamadı.");
-    return;
-  }
-
-  const excelData = filtreliKayitlar.map((k, index) => ({
-    No: index + 1,
-    Tarih: k.activity_date,
-    Madde: k.item_no,
-    Faaliyet: k.activity_text,
-    Kaydeden: k.created_by,
-  }));
-
-  const worksheet = XLSX.utils.json_to_sheet(excelData);
-  const workbook = XLSX.utils.book_new();
-
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Faaliyet Kayıtları");
-  XLSX.writeFile(workbook, "faaliyet_kayitlari.xlsx");
-}
-  function mesajHazirla() {
+  function excelAktar() {
     if (filtreliKayitlar.length === 0) {
+      alert("Excel'e aktarılacak faaliyet kaydı bulunamadı.");
+      return;
+    }
+
+    const excelData = filtreliKayitlar.map((k, index) => ({
+      No: index + 1,
+      Tarih: k.activity_date,
+      "Madde No": k.item_no,
+      Faaliyet: k.activity_text,
+      Kaydeden: k.created_by || "",
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    const workbook = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Faaliyet Kayıtları");
+    XLSX.writeFile(workbook, "faaliyet_kayitlari.xlsx");
+  }
+
+  function mesajHazirla() {
+    const gunlukKayitlar = kayitlar.filter(
+      (k) => k.activity_date === selectedDate
+    );
+
+    if (gunlukKayitlar.length === 0) {
       alert("Seçilen tarihte kayıt bulunamadı.");
       return null;
     }
@@ -111,12 +133,12 @@ function excelAktar() {
     message += "Tarih: " + selectedDate + "\n";
     message += "--------------------------------\n";
 
-    filtreliKayitlar.forEach((k) => {
+    gunlukKayitlar.forEach((k) => {
       message += `Madde ${k.item_no}: ${k.activity_text}\n`;
     });
 
     message += "--------------------------------\n";
-    message += filtreliKayitlar[0]?.created_by || "";
+    message += gunlukKayitlar[0]?.created_by || "";
 
     return message;
   }
@@ -153,7 +175,6 @@ function excelAktar() {
     }
 
     await navigator.clipboard.writeText(message);
-
     window.open(group.link, "_blank");
 
     alert(
@@ -190,7 +211,10 @@ function excelAktar() {
   async function kayitSil(id: number) {
     if (!confirm("Bu faaliyet kaydını silmek istiyor musunuz?")) return;
 
-    const { error } = await supabase.from("daily_activities").delete().eq("id", id);
+    const { error } = await supabase
+      .from("daily_activities")
+      .delete()
+      .eq("id", id);
 
     if (error) {
       alert("Silme hatası: " + error.message);
@@ -204,14 +228,15 @@ function excelAktar() {
     <main className="min-h-screen bg-slate-100 flex">
       <Sidebar fullName="Barış Nevruz" role="Yönetici" />
 
-      <section className="flex-1 p-8 overflow-x-hidden">
+      <section className="flex-1 p-4 md:p-8 overflow-x-auto">
         <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-8 mb-6 text-slate-900">
           <h1 className="text-3xl font-bold text-slate-900">
             Günlük Faaliyet Kayıtları
           </h1>
 
           <p className="text-slate-600 mt-2">
-            Tarihe göre faaliyetleri görüntüleyin ve WhatsApp üzerinden gönderin.
+            Faaliyetleri görüntüleyin, filtreleyin, Excel'e aktarın ve günlük
+            WhatsApp raporu gönderin.
           </p>
         </div>
 
@@ -226,24 +251,26 @@ function excelAktar() {
                 className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 mt-2"
               />
             </div>
-<div>
-  <label className="font-semibold text-slate-800">
-    Tüm Kayıtlar
-  </label>
 
-  <button
-    onClick={() => setTumKayitlariGoster(!tumKayitlariGoster)}
-    className={
-      tumKayitlariGoster
-        ? "w-full bg-blue-600 text-white rounded-xl px-4 py-3 mt-2 font-semibold"
-        : "w-full bg-slate-700 text-white rounded-xl px-4 py-3 mt-2 font-semibold"
-    }
-  >
-    {tumKayitlariGoster
-      ? "Tüm Kayıtlar Açık"
-      : "Sadece Seçili Tarih"}
-  </button>
-</div>
+            <div>
+              <label className="font-semibold text-slate-800">
+                Tüm Kayıtlar
+              </label>
+
+              <button
+                onClick={() => setTumKayitlariGoster(!tumKayitlariGoster)}
+                className={
+                  tumKayitlariGoster
+                    ? "w-full bg-blue-600 text-white rounded-xl px-4 py-3 mt-2 font-semibold"
+                    : "w-full bg-slate-700 text-white rounded-xl px-4 py-3 mt-2 font-semibold"
+                }
+              >
+                {tumKayitlariGoster
+                  ? "Tüm Kayıtlar Açık"
+                  : "Sadece Seçili Tarih"}
+              </button>
+            </div>
+
             <div>
               <label className="font-semibold text-slate-800">
                 WhatsApp Kişisi
@@ -295,39 +322,56 @@ function excelAktar() {
             </button>
           </div>
         </div>
-<div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 mb-6 text-slate-900">
-  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
 
-    <input
-      value={arama}
-      onChange={(e) => setArama(e.target.value)}
-      placeholder="Faaliyet ara..."
-      className="bg-white border border-slate-300 rounded-xl px-4 py-3"
-    />
+        <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 mb-6 text-slate-900">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <input
+              value={arama}
+              onChange={(e) => setArama(e.target.value)}
+              placeholder="Faaliyet, tarih, madde veya kaydeden ara..."
+              className="bg-white border border-slate-300 rounded-xl px-4 py-3"
+            />
 
-    <input
-      type="date"
-      value={baslangicTarih}
-      onChange={(e) => setBaslangicTarih(e.target.value)}
-      className="bg-white border border-slate-300 rounded-xl px-4 py-3"
-    />
+            <input
+              type="date"
+              value={baslangicTarih}
+              onChange={(e) => setBaslangicTarih(e.target.value)}
+              className="bg-white border border-slate-300 rounded-xl px-4 py-3"
+            />
 
-    <input
-      type="date"
-      value={bitisTarih}
-      onChange={(e) => setBitisTarih(e.target.value)}
-      className="bg-white border border-slate-300 rounded-xl px-4 py-3"
-    />
+            <input
+              type="date"
+              value={bitisTarih}
+              onChange={(e) => setBitisTarih(e.target.value)}
+              className="bg-white border border-slate-300 rounded-xl px-4 py-3"
+            />
 
-    <button
-      onClick={excelAktar}
-      className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold px-4 py-3"
-    >
-      Excel'e Aktar
-    </button>
+            <button
+              onClick={excelAktar}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold px-4 py-3"
+            >
+              Excel&apos;e Aktar
+            </button>
+          </div>
 
-  </div>
-</div>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button
+              onClick={() => {
+                setArama("");
+                setBaslangicTarih("");
+                setBitisTarih("");
+              }}
+              className="bg-slate-700 hover:bg-slate-800 text-white px-5 py-3 rounded-xl font-bold"
+            >
+              Filtreleri Temizle
+            </button>
+
+            <div className="bg-slate-100 border border-slate-200 px-5 py-3 rounded-xl font-semibold text-slate-700">
+              Görünen Kayıt: {filtreliKayitlar.length}
+            </div>
+          </div>
+        </div>
+
         <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 overflow-auto text-slate-900">
           <table className="w-full border border-slate-300 text-sm min-w-[1000px]">
             <thead className="bg-slate-800 text-white">
@@ -356,7 +400,7 @@ function excelAktar() {
                   </td>
 
                   <td className="border border-slate-300 p-2 text-center">
-                    {kayit.created_by}
+                    {kayit.created_by || "-"}
                   </td>
 
                   <td className="border border-slate-300 p-2 text-center">
@@ -387,7 +431,7 @@ function excelAktar() {
                     colSpan={5}
                     className="border border-slate-300 p-4 text-center text-slate-500"
                   >
-                    Seçilen tarihte kayıt bulunamadı.
+                    Kayıt bulunamadı.
                   </td>
                 </tr>
               )}
