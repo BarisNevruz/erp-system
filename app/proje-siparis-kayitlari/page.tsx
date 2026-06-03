@@ -73,12 +73,9 @@ export default function ProjeSiparisKayitlariPage() {
   const [selectedMailIds, setSelectedMailIds] = useState<string[]>([]);
   const [selectedCcMailIds, setSelectedCcMailIds] = useState<string[]>([]);
 
-  const [whatsappContacts, setWhatsappContacts] = useState<WhatsAppContact[]>(
-    []
-  );
+  const [whatsappContacts, setWhatsappContacts] = useState<WhatsAppContact[]>([]);
   const [whatsappGroups, setWhatsappGroups] = useState<WhatsAppGroup[]>([]);
-  const [selectedWhatsappContactId, setSelectedWhatsappContactId] =
-    useState("");
+  const [selectedWhatsappContactId, setSelectedWhatsappContactId] = useState("");
   const [selectedWhatsappGroupId, setSelectedWhatsappGroupId] = useState("");
 
   const [musteriFiltre, setMusteriFiltre] = useState("");
@@ -187,9 +184,7 @@ export default function ProjeSiparisKayitlariPage() {
     const text = `${k.proje_adi} ${k.musteri_adi} ${k.urun_tipi}`.toLowerCase();
 
     const aramaUygun = text.includes(arama.toLowerCase());
-
     const musteriUygun = !musteriFiltre || k.musteri_adi === musteriFiltre;
-
     const urunTipiUygun = !urunTipiFiltre || k.urun_tipi === urunTipiFiltre;
 
     let durumUygun = true;
@@ -204,6 +199,10 @@ export default function ProjeSiparisKayitlariPage() {
       durumUygun = Number(k.tamamlanma_yuzdesi || 0) < 100;
     }
 
+    if (durumFiltre === "Termin Yaklaşan") {
+      durumUygun = yaklasiyorMu(k);
+    }
+
     let tarihUygun = true;
 
     if (baslangicTarih) {
@@ -214,13 +213,7 @@ export default function ProjeSiparisKayitlariPage() {
       tarihUygun = tarihUygun && k.proje_siparis_tarihi <= bitisTarih;
     }
 
-    return (
-      aramaUygun &&
-      musteriUygun &&
-      urunTipiUygun &&
-      durumUygun &&
-      tarihUygun
-    );
+    return aramaUygun && musteriUygun && urunTipiUygun && durumUygun && tarihUygun;
   });
 
   const toplamUrunAdeti = filtreliKayitlar.reduce(
@@ -290,14 +283,8 @@ export default function ProjeSiparisKayitlariPage() {
     }, {})
   ) as any[];
 
-  const hasMalzemeData = malzemeTonajData.some(
-    (x) => Number(x.kg || 0) > 0
-  );
-
-  const hasMusteriData = musteriTonajData.some(
-    (x) => Number(x.kg || 0) > 0
-  );
-
+  const hasMalzemeData = malzemeTonajData.some((x) => Number(x.kg || 0) > 0);
+  const hasMusteriData = musteriTonajData.some((x) => Number(x.kg || 0) > 0);
   const hasUrunData = urunTipiTonajData.some((x) => Number(x.kg || 0) > 0);
 
   function kalanGunHesapla(terminTarihi: string) {
@@ -328,15 +315,18 @@ export default function ProjeSiparisKayitlariPage() {
 
     return (
       kalanGun >= 0 &&
-      kalanGun <= 7 &&
+      kalanGun <= 3 &&
       Number(k.tamamlanma_yuzdesi || 0) < 100
     );
   }
 
+  function terminYaklasanSiparisler() {
+    return kayitlar.filter((k) => yaklasiyorMu(k));
+  }
+
   function satirRengi(k: ProjectOrder) {
     if (geciktiMi(k)) return "bg-red-50 border-b border-red-200 text-slate-900";
-    if (yaklasiyorMu(k))
-      return "bg-yellow-50 border-b border-yellow-200 text-slate-900";
+    if (yaklasiyorMu(k)) return "bg-yellow-50 border-b border-yellow-200 text-slate-900";
 
     return "border-b border-slate-200 text-slate-900";
   }
@@ -353,7 +343,7 @@ export default function ProjeSiparisKayitlariPage() {
     if (yaklasiyorMu(k)) {
       return (
         <span className="text-yellow-700 font-bold">
-          Yaklaşıyor ({kalanGunHesapla(k.termin_tarihi)} gün)
+          Termin Yaklaştı ({kalanGunHesapla(k.termin_tarihi)} gün)
         </span>
       );
     }
@@ -387,13 +377,41 @@ export default function ProjeSiparisKayitlariPage() {
       message += `Termin: ${k.termin_tarihi || "-"}\n`;
       message += `Gecikme: ${gecikmeGunuHesapla(k.termin_tarihi)} gün\n`;
       message += `Tamamlanma: %${k.tamamlanma_yuzdesi || 0}\n`;
-      message += `Toplam KG: ${Number(k.toplam_malzeme_kg || 0).toLocaleString(
-        "tr-TR"
-      )} kg\n`;
+      message += `Toplam KG: ${Number(k.toplam_malzeme_kg || 0).toLocaleString("tr-TR")} kg\n`;
       message += "--------------------------------\n";
     });
 
     message += "Lütfen geciken siparişler için aksiyon durumunu güncelleyiniz.";
+
+    return message;
+  }
+
+  function terminYaklasanMesajiHazirla() {
+    const yaklasanlar = terminYaklasanSiparisler();
+
+    if (yaklasanlar.length === 0) {
+      alert("Termin tarihi yaklaşan sipariş bulunmuyor.");
+      return null;
+    }
+
+    let message = "UYARI - TERMİN TARİHİ YAKLAŞAN PROJE SİPARİŞLERİ\n";
+    message += "Tarih: " + new Date().toLocaleDateString("tr-TR") + "\n";
+    message += "--------------------------------\n";
+
+    yaklasanlar.forEach((k, index) => {
+      message += `${index + 1}) ${k.proje_adi || "-"}\n`;
+      message += `Sipariş Tarihi: ${k.proje_siparis_tarihi || "-"}\n`;
+      message += `Müşteri: ${k.musteri_adi || "-"}\n`;
+      message += `Ürün Tipi: ${k.urun_tipi || "-"}\n`;
+      message += `Adet: ${k.urun_adeti || 0}\n`;
+      message += `Termin: ${k.termin_tarihi || "-"}\n`;
+      message += `Kalan Süre: ${kalanGunHesapla(k.termin_tarihi)} gün\n`;
+      message += `Tamamlanma: %${k.tamamlanma_yuzdesi || 0}\n`;
+      message += `Toplam KG: ${Number(k.toplam_malzeme_kg || 0).toLocaleString("tr-TR")} kg\n`;
+      message += "--------------------------------\n";
+    });
+
+    message += "Lütfen termin tarihi yaklaşan siparişler için aksiyon alınız.";
 
     return message;
   }
@@ -413,10 +431,7 @@ export default function ProjeSiparisKayitlariPage() {
 
     await navigator.clipboard.writeText(message);
 
-    const url = `https://wa.me/${contact.phone}?text=${encodeURIComponent(
-      message
-    )}`;
-
+    const url = `https://wa.me/${contact.phone}?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank");
   }
 
@@ -434,11 +449,50 @@ export default function ProjeSiparisKayitlariPage() {
     }
 
     await navigator.clipboard.writeText(message);
-
     window.open(group.link, "_blank");
 
     alert(
       "Geciken sipariş mesajı panoya kopyalandı. Açılan WhatsApp grubuna Ctrl + V ile yapıştırabilirsiniz."
+    );
+  }
+
+  async function terminYaklasanWhatsappKisiyeGonder() {
+    const message = terminYaklasanMesajiHazirla();
+    if (!message) return;
+
+    const contact = whatsappContacts.find(
+      (c) => String(c.id) === selectedWhatsappContactId
+    );
+
+    if (!contact) {
+      alert("Lütfen WhatsApp kişisi seçiniz.");
+      return;
+    }
+
+    await navigator.clipboard.writeText(message);
+
+    const url = `https://wa.me/${contact.phone}?text=${encodeURIComponent(message)}`;
+    window.open(url, "_blank");
+  }
+
+  async function terminYaklasanWhatsappGrubaGonder() {
+    const message = terminYaklasanMesajiHazirla();
+    if (!message) return;
+
+    const group = whatsappGroups.find(
+      (g) => String(g.id) === selectedWhatsappGroupId
+    );
+
+    if (!group) {
+      alert("Lütfen WhatsApp grubu seçiniz.");
+      return;
+    }
+
+    await navigator.clipboard.writeText(message);
+    window.open(group.link, "_blank");
+
+    alert(
+      "Termin yaklaşan sipariş mesajı panoya kopyalandı. Açılan WhatsApp grubuna Ctrl + V ile yapıştırabilirsiniz."
     );
   }
 
@@ -467,11 +521,12 @@ export default function ProjeSiparisKayitlariPage() {
       Durum: geciktiMi(k)
         ? "Gecikti"
         : yaklasiyorMu(k)
-        ? "Yaklaşıyor"
+        ? "Termin Yaklaştı"
         : Number(k.tamamlanma_yuzdesi || 0) >= 100
         ? "Tamamlandı"
         : "Normal",
       "Gecikme Günü": gecikmeGunuHesapla(k.termin_tarihi),
+      "Kalan Gün": kalanGunHesapla(k.termin_tarihi),
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(excelData);
@@ -567,6 +622,94 @@ export default function ProjeSiparisKayitlariPage() {
     }
 
     alert("Geciken sipariş maili gönderildi.");
+  }
+
+  async function terminYaklasanSiparisMailiGonder() {
+    const secilenMailler = mailListesi
+      .filter((m) => selectedMailIds.includes(m.id))
+      .map((m) => m.email);
+
+    const secilenCcMailler = mailListesi
+      .filter((m) => selectedCcMailIds.includes(m.id))
+      .map((m) => m.email);
+
+    if (secilenMailler.length === 0) {
+      alert("Lütfen en az bir ana mail alıcısı seçiniz.");
+      return;
+    }
+
+    const yaklasanlar = terminYaklasanSiparisler();
+
+    if (yaklasanlar.length === 0) {
+      alert("Termin tarihi yaklaşan sipariş bulunmuyor.");
+      return;
+    }
+
+    let body = `
+      <h2 style="color:#ca8a04;">UYARI - TERMİN TARİHİ YAKLAŞAN PROJE SİPARİŞLERİ</h2>
+      <p>Aşağıdaki proje siparişlerinin termin tarihine 3 gün veya daha az kalmıştır.</p>
+      <table border="1" cellpadding="8" cellspacing="0"
+        style="border-collapse:collapse;width:100%;font-family:Arial;font-size:13px;">
+        <thead>
+          <tr style="background:#fef3c7;color:#92400e;">
+            <th>Sipariş Tarihi</th>
+            <th>Müşteri</th>
+            <th>Proje</th>
+            <th>Ürün Tipi</th>
+            <th>Adet</th>
+            <th>Termin</th>
+            <th>Kalan Süre</th>
+            <th>Tamamlanma</th>
+            <th>Toplam KG</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    yaklasanlar.forEach((k) => {
+      body += `
+        <tr>
+          <td>${k.proje_siparis_tarihi || ""}</td>
+          <td>${k.musteri_adi || ""}</td>
+          <td>${k.proje_adi || ""}</td>
+          <td>${k.urun_tipi || ""}</td>
+          <td>${k.urun_adeti || 0}</td>
+          <td>${k.termin_tarihi || ""}</td>
+          <td style="color:#ca8a04;font-weight:bold;">
+            ${kalanGunHesapla(k.termin_tarihi)} gün
+          </td>
+          <td>%${k.tamamlanma_yuzdesi || 0}</td>
+          <td>${Number(k.toplam_malzeme_kg || 0).toLocaleString("tr-TR")} kg</td>
+        </tr>
+      `;
+    });
+
+    body += `
+        </tbody>
+      </table>
+      <p style="margin-top:20px;color:#ca8a04;font-weight:bold;">
+        Lütfen termin tarihi yaklaşan siparişler için aksiyon alınız.
+      </p>
+    `;
+
+    const response = await fetch("/api/send-mail", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to: secilenMailler.join(";"),
+        cc: secilenCcMailler.join(";"),
+        subject: "UYARI - Termin Tarihi Yaklaşan Proje Siparişleri",
+        body,
+      }),
+    });
+
+    if (!response.ok) {
+      const hata = await response.text();
+      alert("Mail gönderilemedi: " + hata);
+      return;
+    }
+
+    alert("Termin yaklaşan sipariş maili gönderildi.");
   }
 
   return (
@@ -709,9 +852,7 @@ export default function ProjeSiparisKayitlariPage() {
                   {mailListesi.map((m) => (
                     <tr key={m.id} className="bg-white">
                       <td className="border border-slate-300 p-2">{m.name}</td>
-                      <td className="border border-slate-300 p-2">
-                        {m.email}
-                      </td>
+                      <td className="border border-slate-300 p-2">{m.email}</td>
 
                       <td className="border border-slate-300 p-2 text-center">
                         <input
@@ -738,10 +879,7 @@ export default function ProjeSiparisKayitlariPage() {
                           checked={selectedCcMailIds.includes(m.id)}
                           onChange={(e) => {
                             if (e.target.checked) {
-                              setSelectedCcMailIds([
-                                ...selectedCcMailIds,
-                                m.id,
-                              ]);
+                              setSelectedCcMailIds([...selectedCcMailIds, m.id]);
                               setSelectedMailIds(
                                 selectedMailIds.filter((x) => x !== m.id)
                               );
@@ -773,10 +911,10 @@ export default function ProjeSiparisKayitlariPage() {
 
           <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mt-4 mb-4">
             <label className="font-semibold text-slate-800 block mb-3">
-              WhatsApp Geciken Sipariş Gönderimi
+              WhatsApp Sipariş Gönderimi
             </label>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
               <select
                 value={selectedWhatsappContactId}
                 onChange={(e) => setSelectedWhatsappContactId(e.target.value)}
@@ -794,9 +932,16 @@ export default function ProjeSiparisKayitlariPage() {
 
               <button
                 onClick={gecikenSiparisWhatsappKisiyeGonder}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-bold"
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-xl font-bold"
               >
-                Kişiye WhatsApp Gönder
+                Geciken Kişiye
+              </button>
+
+              <button
+                onClick={terminYaklasanWhatsappKisiyeGonder}
+                className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-3 rounded-xl font-bold"
+              >
+                Yaklaşan Kişiye
               </button>
 
               <select
@@ -816,9 +961,16 @@ export default function ProjeSiparisKayitlariPage() {
 
               <button
                 onClick={gecikenSiparisWhatsappGrubaGonder}
-                className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-bold"
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-xl font-bold"
               >
-                Gruba WhatsApp Gönder
+                Geciken Gruba
+              </button>
+
+              <button
+                onClick={terminYaklasanWhatsappGrubaGonder}
+                className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-3 rounded-xl font-bold"
+              >
+                Yaklaşan Gruba
               </button>
             </div>
           </div>
@@ -836,6 +988,13 @@ export default function ProjeSiparisKayitlariPage() {
               className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl font-bold"
             >
               Geciken Sipariş Maili Gönder
+            </button>
+
+            <button
+              onClick={terminYaklasanSiparisMailiGonder}
+              className="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-3 rounded-xl font-bold"
+            >
+              Termin Yaklaşan Maili Gönder
             </button>
           </div>
 
@@ -879,6 +1038,7 @@ export default function ProjeSiparisKayitlariPage() {
             >
               <option>Tümü</option>
               <option>Geciken</option>
+              <option>Termin Yaklaşan</option>
               <option>Tamamlanan</option>
               <option>Devam Eden</option>
             </select>
@@ -978,19 +1138,14 @@ export default function ProjeSiparisKayitlariPage() {
                     <Td>{formatKg(k.aluminyum_kg)}</Td>
                     <Td>{formatKg(k.crni_kg)}</Td>
                     <Td>{formatKg(k.talasli_imalat_kg)}</Td>
-                    <Td className="font-bold">
-                      {formatKg(k.toplam_malzeme_kg)}
-                    </Td>
+                    <Td className="font-bold">{formatKg(k.toplam_malzeme_kg)}</Td>
                     <Td>%{k.tamamlanma_yuzdesi}</Td>
                   </tr>
                 ))}
 
                 {filtreliKayitlar.length === 0 && (
                   <tr>
-                    <td
-                      colSpan={16}
-                      className="p-6 text-center text-slate-500"
-                    >
+                    <td colSpan={16} className="p-6 text-center text-slate-500">
                       Kayıt bulunamadı.
                     </td>
                   </tr>
@@ -1008,106 +1163,19 @@ export default function ProjeSiparisKayitlariPage() {
               </h2>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <EditInput
-                  label="Sipariş Tarihi"
-                  name="proje_siparis_tarihi"
-                  type="date"
-                  value={duzenlenen.proje_siparis_tarihi}
-                  onChange={handleEditChange}
-                />
-
-                <EditInput
-                  label="Termin Tarihi"
-                  name="termin_tarihi"
-                  type="date"
-                  value={duzenlenen.termin_tarihi}
-                  onChange={handleEditChange}
-                />
-
-                <EditInput
-                  label="Müşteri Adı"
-                  name="musteri_adi"
-                  value={duzenlenen.musteri_adi}
-                  onChange={handleEditChange}
-                />
-
-                <EditInput
-                  label="Proje Adı"
-                  name="proje_adi"
-                  value={duzenlenen.proje_adi}
-                  onChange={handleEditChange}
-                />
-
-                <EditInput
-                  label="Ürün Tipi"
-                  name="urun_tipi"
-                  value={duzenlenen.urun_tipi}
-                  onChange={handleEditChange}
-                />
-
-                <EditInput
-                  label="Ürün Adeti"
-                  name="urun_adeti"
-                  type="number"
-                  value={String(duzenlenen.urun_adeti)}
-                  onChange={handleEditChange}
-                />
-
-                <EditInput
-                  label="Siyah Sac KG"
-                  name="siyah_sac_kg"
-                  type="number"
-                  value={String(duzenlenen.siyah_sac_kg)}
-                  onChange={handleEditChange}
-                />
-
-                <EditInput
-                  label="Hardox KG"
-                  name="hardox_kg"
-                  type="number"
-                  value={String(duzenlenen.hardox_kg)}
-                  onChange={handleEditChange}
-                />
-
-                <EditInput
-                  label="MC700-Strenx KG"
-                  name="mc700_strenx_kg"
-                  type="number"
-                  value={String(duzenlenen.mc700_strenx_kg)}
-                  onChange={handleEditChange}
-                />
-
-                <EditInput
-                  label="Alüminyum KG"
-                  name="aluminyum_kg"
-                  type="number"
-                  value={String(duzenlenen.aluminyum_kg)}
-                  onChange={handleEditChange}
-                />
-
-                <EditInput
-                  label="CrNi KG"
-                  name="crni_kg"
-                  type="number"
-                  value={String(duzenlenen.crni_kg)}
-                  onChange={handleEditChange}
-                />
-
-                <EditInput
-                  label="Talaşlı İmalat KG"
-                  name="talasli_imalat_kg"
-                  type="number"
-                  value={String(duzenlenen.talasli_imalat_kg)}
-                  onChange={handleEditChange}
-                />
-
-                <EditInput
-                  label="Tamamlanma %"
-                  name="tamamlanma_yuzdesi"
-                  type="number"
-                  value={String(duzenlenen.tamamlanma_yuzdesi)}
-                  onChange={handleEditChange}
-                />
+                <EditInput label="Sipariş Tarihi" name="proje_siparis_tarihi" type="date" value={duzenlenen.proje_siparis_tarihi} onChange={handleEditChange} />
+                <EditInput label="Termin Tarihi" name="termin_tarihi" type="date" value={duzenlenen.termin_tarihi} onChange={handleEditChange} />
+                <EditInput label="Müşteri Adı" name="musteri_adi" value={duzenlenen.musteri_adi} onChange={handleEditChange} />
+                <EditInput label="Proje Adı" name="proje_adi" value={duzenlenen.proje_adi} onChange={handleEditChange} />
+                <EditInput label="Ürün Tipi" name="urun_tipi" value={duzenlenen.urun_tipi} onChange={handleEditChange} />
+                <EditInput label="Ürün Adeti" name="urun_adeti" type="number" value={String(duzenlenen.urun_adeti)} onChange={handleEditChange} />
+                <EditInput label="Siyah Sac KG" name="siyah_sac_kg" type="number" value={String(duzenlenen.siyah_sac_kg)} onChange={handleEditChange} />
+                <EditInput label="Hardox KG" name="hardox_kg" type="number" value={String(duzenlenen.hardox_kg)} onChange={handleEditChange} />
+                <EditInput label="MC700-Strenx KG" name="mc700_strenx_kg" type="number" value={String(duzenlenen.mc700_strenx_kg)} onChange={handleEditChange} />
+                <EditInput label="Alüminyum KG" name="aluminyum_kg" type="number" value={String(duzenlenen.aluminyum_kg)} onChange={handleEditChange} />
+                <EditInput label="CrNi KG" name="crni_kg" type="number" value={String(duzenlenen.crni_kg)} onChange={handleEditChange} />
+                <EditInput label="Talaşlı İmalat KG" name="talasli_imalat_kg" type="number" value={String(duzenlenen.talasli_imalat_kg)} onChange={handleEditChange} />
+                <EditInput label="Tamamlanma %" name="tamamlanma_yuzdesi" type="number" value={String(duzenlenen.tamamlanma_yuzdesi)} onChange={handleEditChange} />
               </div>
 
               <div className="flex justify-end gap-3 mt-6">
@@ -1208,13 +1276,7 @@ function Td({
   return <td className={`p-3 whitespace-nowrap ${className}`}>{children}</td>;
 }
 
-function EditInput({
-  label,
-  name,
-  value,
-  onChange,
-  type = "text",
-}: any) {
+function EditInput({ label, name, value, onChange, type = "text" }: any) {
   return (
     <div>
       <label className="block text-sm font-semibold text-slate-800 mb-1">
