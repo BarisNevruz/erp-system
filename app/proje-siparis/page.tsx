@@ -1,4 +1,5 @@
 "use client";
+
 import Sidebar from "@/components/Sidebar";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -79,75 +80,76 @@ export default function ProjeSiparisPage() {
   }
 
   return (
-  <main className="min-h-screen bg-slate-100 flex">
-    <Sidebar fullName="Barış Nevruz" role="Yönetici" />
+    <main className="min-h-screen bg-slate-100 flex">
+      <Sidebar fullName="Barış Nevruz" role="Yönetici" />
 
-    <section className="flex-1 bg-slate-100 p-8 overflow-x-hidden">
-      <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow p-8">
-        <h1 className="text-3xl font-bold text-white">
-          Proje Sipariş Girişi
-        </h1>
+      <section className="flex-1 bg-slate-100 p-4 md:p-8 overflow-x-auto">
+        <div className="max-w-5xl mx-auto bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-slate-900">
+          <h1 className="text-3xl font-bold text-slate-900">
+            Proje Sipariş Girişi
+          </h1>
 
-        <p className="text-slate-300 mt-2">
-          Proje sipariş bilgilerini ve malzeme ağırlıklarını girin.
-        </p>
+          <p className="text-slate-600 mt-2">
+            Proje sipariş bilgilerini ve malzeme ağırlıklarını girin.
+          </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-8">
-          <Input label="Proje Sipariş Tarihi" name="proje_siparis_tarihi" type="date" value={form.proje_siparis_tarihi} onChange={handleChange} />
-          <Input label="Termin Tarihi" name="termin_tarihi" type="date" value={form.termin_tarihi} onChange={handleChange} />
-          <Input label="Müşteri Adı" name="musteri_adi" value={form.musteri_adi} onChange={handleChange} />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-8">
+            <Input label="Proje Sipariş Tarihi" name="proje_siparis_tarihi" type="date" value={form.proje_siparis_tarihi} onChange={handleChange} />
+            <Input label="Termin Tarihi" name="termin_tarihi" type="date" value={form.termin_tarihi} onChange={handleChange} />
+            <Input label="Müşteri Adı" name="musteri_adi" value={form.musteri_adi} onChange={handleChange} />
 
-          <Input label="Proje Adı" name="proje_adi" value={form.proje_adi} onChange={handleChange} />
+            <Input label="Proje Adı" name="proje_adi" value={form.proje_adi} onChange={handleChange} />
 
-          <div>
-            <label className="block text-sm font-semibold text-whitetext-slate-200 mb-1">
-              Ürün Tipi
-            </label>
-            <select
-              name="urun_tipi"
-              value={form.urun_tipi}
-              onChange={handleChange}
-              className="w-full border rounded-xl px-4 py-3"
-            >
-              <option value="">Seçiniz</option>
-              <option value="Platform">Platform</option>
-              <option value="Lowbed">Lowbed</option>
-              <option value="Konteyner Taşıyıcı">Konteyner Taşıyıcı</option>
-              <option value="Damper Treyler">Damper Treyler</option>
-              <option value="Şase">Şase</option>
-              <option value="Araç Üstü Kasa">Araç Üstü Kasa</option>
-              <option value="Römork">Römork</option>
-              <option value="Özel Proje">Özel Proje</option>
-            </select>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">
+                Ürün Tipi
+              </label>
+              <select
+                name="urun_tipi"
+                value={form.urun_tipi}
+                onChange={handleChange}
+                className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3"
+              >
+                <option value="">Seçiniz</option>
+                <option value="Platform">Platform</option>
+                <option value="Lowbed">Lowbed</option>
+                <option value="Konteyner Taşıyıcı">Konteyner Taşıyıcı</option>
+                <option value="Damper Treyler">Damper Treyler</option>
+                <option value="Şase">Şase</option>
+                <option value="Araç Üstü Kasa">Araç Üstü Kasa</option>
+                <option value="Römork">Römork</option>
+                <option value="Özel Proje">Özel Proje</option>
+              </select>
+            </div>
+
+            <Input label="Ürün Adeti" name="urun_adeti" type="number" value={form.urun_adeti} onChange={handleChange} />
+            <Input label="Siyah Sac KG" name="siyah_sac_kg" type="number" value={form.siyah_sac_kg} onChange={handleChange} />
+            <Input label="Hardox KG" name="hardox_kg" type="number" value={form.hardox_kg} onChange={handleChange} />
+            <Input label="MC700 - Strenx KG" name="mc700_strenx_kg" type="number" value={form.mc700_strenx_kg} onChange={handleChange} />
+            <Input label="Alüminyum KG" name="aluminyum_kg" type="number" value={form.aluminyum_kg} onChange={handleChange} />
+            <Input label="CrNi KG" name="crni_kg" type="number" value={form.crni_kg} onChange={handleChange} />
+            <Input label="Talaşlı İmalat KG" name="talasli_imalat_kg" type="number" value={form.talasli_imalat_kg} onChange={handleChange} />
+            <Input label="Tamamlanma %" name="tamamlanma_yuzdesi" type="number" value={form.tamamlanma_yuzdesi} onChange={handleChange} />
           </div>
 
-          <Input label="Ürün Adeti" name="urun_adeti" type="number" value={form.urun_adeti} onChange={handleChange} />
+          <div className="mt-8 bg-slate-100 border border-slate-200 rounded-2xl p-6">
+            <p className="text-slate-600 font-semibold">
+              Genel Toplam Malzeme Ağırlığı
+            </p>
 
-          <Input label="Siyah Sac KG" name="siyah_sac_kg" type="number" value={form.siyah_sac_kg} onChange={handleChange} />
-          <Input label="Hardox KG" name="hardox_kg" type="number" value={form.hardox_kg} onChange={handleChange} />
-          <Input label="MC700 - Strenx KG" name="mc700_strenx_kg" type="number" value={form.mc700_strenx_kg} onChange={handleChange} />
-          <Input label="Alüminyum KG" name="aluminyum_kg" type="number" value={form.aluminyum_kg} onChange={handleChange} />
-          <Input label="CrNi KG" name="crni_kg" type="number" value={form.crni_kg} onChange={handleChange} />
-          <Input label="Talaşlı İmalat KG" name="talasli_imalat_kg" type="number" value={form.talasli_imalat_kg} onChange={handleChange} />
+            <p className="text-3xl font-bold text-slate-900 mt-2">
+              {toplamKg.toLocaleString("tr-TR")} KG
+            </p>
+          </div>
 
-          <Input label="Tamamlanma %" name="tamamlanma_yuzdesi" type="number" value={form.tamamlanma_yuzdesi} onChange={handleChange} />
+          <button
+            onClick={kaydet}
+            className="mt-8 bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-semibold"
+          >
+            Kaydet
+          </button>
         </div>
-
-        <div className="mt-8 bg-slate-100 rounded-2xl p-5">
-          <p className="text-slate-300">Genel Toplam Malzeme Ağırlığı</p>
-          <p className="text-3xl font-bold text-white">
-            {toplamKg.toLocaleString("tr-TR")} KG
-          </p>
-        </div>
-
-        <button
-          onClick={kaydet}
-          className="mt-8 bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-semibold"
-        >
-          Kaydet
-        </button>
-      </div>
-       </section>
+      </section>
     </main>
   );
 }
@@ -167,18 +169,17 @@ function Input({
 }) {
   return (
     <div>
-      <label className="block text-sm font-semibold text-whitetext-slate-200 mb-1">
+      <label className="block text-sm font-semibold text-slate-700 mb-1">
         {label}
       </label>
+
       <input
         name={name}
         type={type}
         value={value}
         onChange={onChange}
-        className="w-full border rounded-xl px-4 py-3"
+        className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3"
       />
     </div>
-
-);
+  );
 }
- 
