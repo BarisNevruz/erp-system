@@ -142,7 +142,28 @@ export default function ProjeSiparisKayitlariPage() {
     alert("Kayıt silindi.");
     verileriGetir();
   }
+async function uretimeAktar(k: ProjectOrder) {
+  const { error } = await supabase
+    .from("production_projects")
+    .insert([
+      {
+        project_name: k.proje_adi,
+        customer_name: k.musteri_adi,
+        product_type: k.urun_tipi,
+        quantity: k.urun_adeti,
+        planned_delivery_date: k.termin_tarihi,
+        progress_percent: 0,
+        active: true,
+      },
+    ]);
 
+  if (error) {
+    alert("Üretime aktarma hatası: " + error.message);
+    return;
+  }
+
+  alert("Proje üretime aktarıldı.");
+}
   async function guncelle() {
     if (!duzenlenen) return;
 
@@ -1122,6 +1143,12 @@ export default function ProjeSiparisKayitlariPage() {
                         >
                           Sil
                         </button>
+                        <button
+  onClick={() => uretimeAktar(k)}
+  className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg"
+>
+  Üretime Aktar
+</button>
                       </div>
                     </Td>
 
