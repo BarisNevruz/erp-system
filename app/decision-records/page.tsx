@@ -493,55 +493,55 @@ function getMailStatusStyle(status: string, late: boolean) {
     setMailPreview(null);
   }
 
-  function sendWhatsappAll() {
-    if (filteredRecords.length === 0) {
-      alert("WhatsApp gönderilecek karar bulunamadı.");
-      return;
-    }
-
-    const text = filteredRecords
-      .map(
-        (r, i) =>
-          `${i + 1}) ${r.decision}\nSorumlu: ${r.responsible || "-"}\nBirim: ${
-            r.department || "-"
-          }\nÖncelik: ${r.priority || "-"}\nTermin: ${
-            r.deadline || "-"
-          }\nDurum: ${r.status || "-"}`
-      )
-      .join("\n\n");
-
-    window.open(
-      `https://wa.me/?text=${encodeURIComponent(
-        "TOPLANTI KARARLARI\n\n" + text
-      )}`,
-      "_blank"
-    );
+  async function sendWhatsappAll() {
+  if (filteredRecords.length === 0) {
+    alert("WhatsApp gönderilecek karar bulunamadı.");
+    return;
   }
 
-  function sendWhatsappLate() {
-    const lateRecords = records.filter((r) => isLate(r));
+  const text = filteredRecords
+    .map(
+      (r, i) =>
+        `${i + 1}) ${r.decision || "-"}\nSorumlu: ${r.responsible || "-"}\nBirim: ${
+          r.department || "-"
+        }\nÖncelik: ${r.priority || "-"}\nTermin: ${
+          r.deadline || "-"
+        }\nDurum: ${r.status || "-"}`
+    )
+    .join("\n\n");
 
-    if (lateRecords.length === 0) {
-      alert("Geciken karar bulunamadı.");
-      return;
-    }
+  await navigator.clipboard.writeText("TOPLANTI KARARLARI\n\n" + text);
 
-    const text = lateRecords
-      .map(
-        (r, i) =>
-          `${i + 1}) ${r.decision}\nSorumlu: ${r.responsible || "-"}\nBirim: ${
-            r.department || "-"
-          }\nTermin: ${r.deadline || "-"}\nGecikme: ${getLateDays(r)} gün`
-      )
-      .join("\n\n");
+  alert("Kararlar panoya kopyalandı. WhatsApp açılınca mesaj alanına yapıştır.");
 
-    window.open(
-      `https://wa.me/?text=${encodeURIComponent(
-        "GECİKEN TOPLANTI KARARLARI\n\n" + text
-      )}`,
-      "_blank"
-    );
+  window.open("https://web.whatsapp.com/", "_blank");
+}
+
+async function sendWhatsappLate() {
+  const lateRecords = records.filter((r) => isLate(r));
+
+  if (lateRecords.length === 0) {
+    alert("Geciken karar bulunamadı.");
+    return;
   }
+
+  const text = lateRecords
+    .map(
+      (r, i) =>
+        `${i + 1}) ${r.decision || "-"}\nSorumlu: ${r.responsible || "-"}\nBirim: ${
+          r.department || "-"
+        }\nÖncelik: ${r.priority || "-"}\nTermin: ${
+          r.deadline || "-"
+        }\nGecikme: ${getLateDays(r)} gün`
+    )
+    .join("\n\n");
+
+  await navigator.clipboard.writeText("GECİKEN TOPLANTI KARARLARI\n\n" + text);
+
+  alert("Geciken kararlar panoya kopyalandı. WhatsApp açılınca mesaj alanına yapıştır.");
+
+  window.open("https://web.whatsapp.com/", "_blank");
+}
 
   function createPdfReport() {
     const doc = new jsPDF();
