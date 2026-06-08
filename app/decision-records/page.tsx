@@ -37,7 +37,7 @@ export default function DecisionRecordsPage() {
 
   async function loadRecords() {
     const { data, error } = await supabase
-      .from("decisions")
+      .from("meeting_decisions")
       .select("*")
       .order("id", { ascending: false });
 
@@ -47,25 +47,25 @@ export default function DecisionRecordsPage() {
     }
 
     const mapped = (data || []).map((r: any) => ({
-      id: r.id,
-      meetingDate: r.meeting_date,
-      meetingNo: r.meeting_no,
-      meetingType: r.meeting_type,
-      meetingPlace: r.meeting_place,
-      generalNote: r.general_note,
-      decision: r.decision,
-      responsible: r.responsible,
-      department: r.department,
-      priority: r.priority,
-      startDate: r.start_date,
-      deadline: r.deadline,
-      status: r.status,
-      managerNote: r.manager_note,
-      mailGroup: r.mail_group,
-      createdAt: r.created_at,
-      mailSent: r.mail_sent,
-      completedAt: r.completed_at,
-    }));
+  id: r.id,
+  meetingDate: r.toplanti_tarihi,
+  meetingNo: "",
+  meetingType: r.toplanti_turu,
+  meetingPlace: r.toplanti_yeri,
+  generalNote: r.yonetici_notu,
+  decision: r.karar_maddesi,
+  responsible: r.sorumlu_kisi,
+  department: r.birim,
+  priority: r.oncelik,
+  startDate: r.toplanti_tarihi,
+  deadline: r.termin_tarihi,
+  status: r.durum,
+  managerNote: r.yonetici_notu,
+  mailGroup: "",
+  createdAt: r.created_at,
+  mailSent: false,
+  completedAt: "",
+}));
 
     setRecords(mapped);
   }
@@ -108,11 +108,10 @@ export default function DecisionRecordsPage() {
         : null;
 
     const { error } = await supabase
-      .from("decisions")
+      .from("meeting_decisions")
       .update({
-        status: newStatus,
-        completed_at: completedAt,
-      })
+  durum: newStatus,
+})
       .eq("id", id);
 
     if (error) {
@@ -128,10 +127,10 @@ export default function DecisionRecordsPage() {
     note: string
   ) {
     await supabase
-      .from("decisions")
+      .from("meeting_decisions")
       .update({
-        manager_note: note,
-      })
+  yonetici_notu: note,
+})
       .eq("id", id);
   }
 
@@ -144,7 +143,7 @@ export default function DecisionRecordsPage() {
       return;
 
     const { error } = await supabase
-      .from("decisions")
+      .from("meeting_decisions")
       .delete()
       .eq("id", id);
 
