@@ -71,6 +71,13 @@ const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [selectedMailGroup, setSelectedMailGroup] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("Tümü");
+  const today = new Date().toISOString().split("T")[0];
+const lastWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+  .toISOString()
+  .split("T")[0];
+
+const [startDateFilter, setStartDateFilter] = useState(lastWeek);
+const [endDateFilter, setEndDateFilter] = useState(today);
   const [form, setForm] = useState<FormState>(emptyForm());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [mailPreview, setMailPreview] = useState<MailPreview | null>(null);
@@ -577,15 +584,25 @@ async function sendWhatsappLate() {
 
     const searchMatch = text.includes(search.toLowerCase());
 
-    let statusMatch = true;
+let statusMatch = true;
 
-    if (statusFilter === "Geciken") {
-      statusMatch = isLate(r);
-    } else if (statusFilter !== "Tümü") {
-      statusMatch = r.status === statusFilter;
-    }
+if (statusFilter === "Geciken") {
+  statusMatch = isLate(r);
+} else if (statusFilter !== "Tümü") {
+  statusMatch = r.status === statusFilter;
+}
 
-    return searchMatch && statusMatch;
+let dateMatch = true;
+
+if (startDateFilter && r.meetingDate) {
+  dateMatch = dateMatch && r.meetingDate >= startDateFilter;
+}
+
+if (endDateFilter && r.meetingDate) {
+  dateMatch = dateMatch && r.meetingDate <= endDateFilter;
+}
+
+return searchMatch && statusMatch && dateMatch;
   });
 
   return (
@@ -743,7 +760,19 @@ async function sendWhatsappLate() {
                 </option>
               ))}
             </select>
+<input
+  type="date"
+  value={startDateFilter}
+  onChange={(e) => setStartDateFilter(e.target.value)}
+  className="bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3"
+/>
 
+<input
+  type="date"
+  value={endDateFilter}
+  onChange={(e) => setEndDateFilter(e.target.value)}
+  className="bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3"
+/>
             <button
               onClick={loadRecords}
               className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold px-4 py-3"
