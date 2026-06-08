@@ -9,7 +9,9 @@ export const authOptions = {
       tenantId: process.env.AZURE_AD_TENANT_ID!,
       authorization: {
         params: {
-          scope: "openid profile email offline_access User.Read Mail.Send",
+          scope:
+            "openid profile email offline_access User.Read Mail.Send Mail.ReadWrite",
+          prompt: "consent",
         },
       },
     }),
