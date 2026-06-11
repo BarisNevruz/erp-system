@@ -818,24 +818,18 @@ return searchMatch && statusMatch && dateMatch;
         </div>
 
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 erp-table-wrap text-slate-900">
-          <table className="erp-table border border-slate-300 text-sm">
+  <table className="erp-table border border-slate-300 text-sm">
             <thead className="bg-slate-800 text-white">
               <tr>
-                <th className="sticky left-0 z-40 bg-slate-800 border border-slate-300 p-2 min-w-[56px]">
-                  No
-                </th>
-                <th className="sticky left-[56px] z-40 bg-slate-800 border border-slate-300 p-2 min-w-[360px] max-w-[360px]">
-                  Karar
-                </th>
-                <th className="sticky left-[416px] z-40 bg-slate-800 border border-slate-300 p-2 min-w-[180px]">
-                  Sorumlu
-                </th>
+                <th className="border border-slate-300 p-2">No</th>
+                <th className="border border-slate-300 p-2">Karar</th>
+                <th className="border border-slate-300 p-2">Sorumlu</th>
                 <th className="border border-slate-300 p-2">Birim</th>
                 <th className="border border-slate-300 p-2">Öncelik</th>
                 <th className="border border-slate-300 p-2">Termin</th>
                 <th className="border border-slate-300 p-2">Gecikme</th>
                 <th className="border border-slate-300 p-2">Durum</th>
-                <th className="border border-slate-300 p-2 min-w-[260px]">Not</th>
+                <th className="border border-slate-300 p-2">Not</th>
                 <th className="border border-slate-300 p-2">İşlem</th>
               </tr>
             </thead>
@@ -849,27 +843,15 @@ return searchMatch && statusMatch && dateMatch;
                     key={r.id}
                     className={lateStatus ? "bg-red-50" : "bg-white"}
                   >
-                    <td
-                      className={`sticky left-0 z-30 border border-slate-300 p-2 text-center font-bold min-w-[56px] ${
-                        lateStatus ? "bg-red-50" : "bg-white"
-                      }`}
-                    >
+                    <td className="border border-slate-300 p-2 text-center font-bold">
                       {i + 1}
                     </td>
 
-                    <td
-                      className={`sticky left-[56px] z-30 border border-slate-300 p-2 min-w-[360px] max-w-[360px] whitespace-normal break-words ${
-                        lateStatus ? "bg-red-50" : "bg-white"
-                      }`}
-                    >
+                    <td className="border border-slate-300 p-2">
                       {r.decision}
                     </td>
 
-                    <td
-                      className={`sticky left-[416px] z-30 border border-slate-300 p-2 min-w-[180px] ${
-                        lateStatus ? "bg-red-50" : "bg-white"
-                      }`}
-                    >
+                    <td className="border border-slate-300 p-2">
                       {r.responsible}
                     </td>
 
@@ -997,7 +979,34 @@ return searchMatch && statusMatch && dateMatch;
     </p>
   )}
 </div>
-                  
+                  <div className="border border-slate-300 rounded-xl p-3 max-h-48 overflow-auto">
+  <p className="font-bold mb-2">
+    Kayıtlı Mail Adresleri
+  </p>
+
+  {mailContacts.map((c) => (
+    <label
+      key={c.id}
+      className="flex gap-2 items-center mb-2"
+    >
+      <input
+        type="checkbox"
+        checked={selectedContacts.includes(c.email)}
+        onChange={() => toggleContact(c.email)}
+      />
+
+      <span>
+        {c.name} - {c.email}
+      </span>
+    </label>
+  ))}
+
+  {mailContacts.length === 0 && (
+    <p className="text-slate-500">
+      Kayıtlı mail adresi yok.
+    </p>
+  )}
+</div>
                 
 
                 <input
