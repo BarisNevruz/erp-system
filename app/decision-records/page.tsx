@@ -726,98 +726,101 @@ return searchMatch && statusMatch && dateMatch;
         </div>
 
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 xl:grid-cols-9 gap-4">
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Ara..."
-              className="bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3"
-            />
+          <div className="space-y-5">
+  <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+    <input
+      value={search}
+      onChange={(e) => setSearch(e.target.value)}
+      placeholder="Ara..."
+      className="bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 w-full"
+    />
 
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3"
-            >
-              <option>Tümü</option>
-              <option>Bekliyor</option>
-              <option>Devam Ediyor</option>
-              <option>Tamamlandı</option>
-              <option>İptal</option>
-              <option>Geciken</option>
-            </select>
+    <select
+      value={statusFilter}
+      onChange={(e) => setStatusFilter(e.target.value)}
+      className="bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 w-full"
+    >
+      <option>Tümü</option>
+      <option>Bekliyor</option>
+      <option>Devam Ediyor</option>
+      <option>Tamamlandı</option>
+      <option>İptal</option>
+      <option>Geciken</option>
+    </select>
 
-            <select
-              value={selectedMailGroup}
-              onChange={(e) => setSelectedMailGroup(e.target.value)}
-              className="bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3"
-            >
-              {mailGroups.length === 0 && <option>Mail grubu yok</option>}
+    <select
+      value={selectedMailGroup}
+      onChange={(e) => setSelectedMailGroup(e.target.value)}
+      className="bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 w-full"
+    >
+      {mailGroups.length === 0 && <option>Mail grubu yok</option>}
 
-              {mailGroups.map((g) => (
-                <option key={g.id} value={g.group_name}>
-                  {g.group_name}
-                </option>
-              ))}
-            </select>
-<input
-  type="date"
-  value={startDateFilter}
-  onChange={(e) => setStartDateFilter(e.target.value)}
-  className="bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3"
-/>
+      {mailGroups.map((g) => (
+        <option key={g.id} value={g.group_name}>
+          {g.group_name}
+        </option>
+      ))}
+    </select>
 
-<input
-  type="date"
-  value={endDateFilter}
-  onChange={(e) => setEndDateFilter(e.target.value)}
-  className="bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3"
-/>
-            <button
-              onClick={loadRecords}
-              className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold px-4 py-3"
-            >
-              Yenile
-            </button>
+    <input
+      type="date"
+      value={startDateFilter}
+      onChange={(e) => setStartDateFilter(e.target.value)}
+      className="bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 w-full min-w-[160px]"
+    />
 
-            <button
-              onClick={createPdfReport}
-              className="bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold px-4 py-3"
-            >
-              PDF
-            </button>
+    <input
+      type="date"
+      value={endDateFilter}
+      onChange={(e) => setEndDateFilter(e.target.value)}
+      className="bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 w-full min-w-[160px]"
+    />
+  </div>
 
-            <button
-              onClick={prepareAllDecisionMail}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold px-4 py-3"
-            >
-              Karar Mail
-            </button>
+  <div className="flex flex-wrap gap-4">
+    <button
+      onClick={loadRecords}
+      className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold px-6 py-3"
+    >
+      Yenile
+    </button>
 
-            <button
-              onClick={prepareLateTaskMail}
-              className="bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-semibold px-4 py-3"
-            >
-              Geciken Mail
-            </button>
+    <button
+      onClick={createPdfReport}
+      className="bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold px-6 py-3"
+    >
+      PDF
+    </button>
 
-            <button
-              onClick={sendWhatsappAll}
-              className="bg-green-700 hover:bg-green-800 text-white rounded-xl font-semibold px-4 py-3"
-            >
-              Karar WhatsApp
-            </button>
+    <button
+      onClick={prepareAllDecisionMail}
+      className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold px-6 py-3"
+    >
+      Karar Mail
+    </button>
 
-            <button
-              onClick={sendWhatsappLate}
-              className="bg-lime-700 hover:bg-lime-800 text-white rounded-xl font-semibold px-4 py-3"
-            >
-              Geciken WhatsApp
-            </button>
-          </div>
-        </div>
+    <button
+      onClick={prepareLateTaskMail}
+      className="bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-semibold px-6 py-3"
+    >
+      Geciken Mail
+    </button>
 
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 overflow-hidden text-slate-900">
+    <button
+      onClick={sendWhatsappAll}
+      className="bg-green-700 hover:bg-green-800 text-white rounded-xl font-semibold px-6 py-3"
+    >
+      Karar WhatsApp
+    </button>
+
+    <button
+      onClick={sendWhatsappLate}
+      className="bg-lime-700 hover:bg-lime-800 text-white rounded-xl font-semibold px-6 py-3"
+    >
+      Geciken WhatsApp
+    </button>
+  </div>
+</div>
           <table className="w-full table-fixed border border-slate-300 text-sm">
             <colgroup>
               <col style={{ width: "4%" }} />
