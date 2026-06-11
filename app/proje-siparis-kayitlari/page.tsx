@@ -858,8 +858,8 @@ async function uretimeAktar(k: ProjectOrder) {
               Mail Alıcıları
             </label>
 
-            <div className="overflow-x-auto">
-              <table className="w-full border border-slate-300 text-sm text-slate-900">
+            <div className="erp-table-wrap">
+  <table className="erp-table border border-slate-300 text-sm text-slate-900">
                 <thead className="bg-slate-800 text-white">
                   <tr>
                     <th className="border border-slate-300 p-2">Kişi</th>
@@ -1102,11 +1102,13 @@ async function uretimeAktar(k: ProjectOrder) {
             </button>
           </div>
 
-          <div className="overflow-x-auto mt-8">
-            <table className="w-full border-collapse text-sm min-w-[1400px]">
+          <div className="erp-table-wrap mt-8">
+  <table className="erp-table border-collapse text-sm">
               <thead>
                 <tr className="bg-slate-800 text-white">
-                  <Th>İşlem</Th>
+                  <th className="sticky left-0 z-30 bg-slate-800 text-white border border-slate-300 px-3 py-2">
+  İşlem
+</th>
                   <Th>Durum</Th>
                   <Th>Sipariş Tarihi</Th>
                   <Th>Termin</Th>
@@ -1128,8 +1130,8 @@ async function uretimeAktar(k: ProjectOrder) {
               <tbody>
                 {filtreliKayitlar.map((k) => (
                   <tr key={k.id} className={satirRengi(k)}>
-                    <Td>
-                      <div className="flex gap-2">
+                    <td className="sticky left-0 z-20 bg-white border border-slate-300 p-2">
+  <div className="flex gap-2">
                         <button
                           onClick={() => setDuzenlenen(k)}
                           className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg"
@@ -1150,7 +1152,7 @@ async function uretimeAktar(k: ProjectOrder) {
   Üretime Aktar
 </button>
                       </div>
-                    </Td>
+                    </td>
 
                     <Td>{durumEtiketi(k)}</Td>
                     <Td>{k.proje_siparis_tarihi}</Td>

@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #e2e8f0;
+  --foreground: #0f172a;
 }
 
 @theme inline {
@@ -12,149 +12,46 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
 }
 
+html,
 body {
+  margin: 0;
+  padding: 0;
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
-.input {
-  width: 100%;
-  border: 1px solid #cbd5e1;
-  border-radius: 12px;
-  padding: 12px;
-  background: white;
-}
-.menuBtn {
-  background: #2563eb;
-  color: white;
-  padding: 12px 18px;
-  border-radius: 12px;
-  text-decoration: none;
-  font-weight: bold;
-}
 
-.menuBtnDark {
-  background: #0f172a;
-  color: white;
-  padding: 12px 18px;
-  border-radius: 12px;
-  text-decoration: none;
-  font-weight: bold;
-}
-.btnBlue {
-  background: #2563eb;
-  color: white;
-  padding: 12px 18px;
-  border-radius: 12px;
-  text-decoration: none;
-  font-weight: bold;
-}
-
-.btnDark {
-  background: #0f172a;
-  color: white;
-  padding: 12px 18px;
-  border-radius: 12px;
-  text-decoration: none;
-  font-weight: bold;
-}
-.btnBlue {
-  background: #2563eb;
-  color: white;
-  padding: 12px 18px;
-  border-radius: 12px;
-  text-decoration: none;
-  font-weight: bold;
-}
-
-.btnWhite {
-  background: white;
-  color: #0f172a;
-  padding: 12px 18px;
-  border-radius: 12px;
-  text-decoration: none;
-  font-weight: bold;
-}
 body {
-  background: #e2e8f0;
-  font-family: Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
 }
 
-.cardHover {
-  transition: 0.25s;
-}
-
-.cardHover:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 15px 35px rgba(0,0,0,0.18);
-}
-
-.kritikGlow {
-  animation: kritikAnim 1.2s infinite;
-}
-
-@keyframes kritikAnim {
-  0% {
-    box-shadow: 0 0 0px rgba(220,38,38,0.3);
-  }
-
-  50% {
-    box-shadow: 0 0 25px rgba(220,38,38,0.9);
-  }
-
-  100% {
-    box-shadow: 0 0 0px rgba(220,38,38,0.3);
-  }
-}
-
-.btnBlue {
-  background: #2563eb;
-  color: white;
-  padding: 12px 18px;
-  border-radius: 12px;
-  text-decoration: none;
-  font-weight: bold;
-  transition: 0.2s;
-}
-
-.btnBlue:hover {
-  background: #1d4ed8;
-}
-
-.btnWhite {
-  background: white;
-  color: #0f172a;
-  padding: 12px 18px;
-  border-radius: 12px;
-  text-decoration: none;
-  font-weight: bold;
-  transition: 0.2s;
-}
-
-.btnWhite:hover {
-  background: #e2e8f0;
-}
-
-.input {
-  width: 100%;
-  padding: 14px;
-  border-radius: 12px;
-  border: 1px solid #cbd5e1;
-  background: white;
-}
+/* Form */
 .input {
   @apply w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-900 placeholder:text-slate-400;
 }
 
+/* Ortak Hücre */
 .td {
   @apply border border-slate-300 p-2 text-slate-900 bg-white;
+}
+
+/* Butonlar */
+.menuBtn,
+.btnBlue {
+  @apply bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-xl no-underline font-bold transition;
+}
+
+.menuBtnDark,
+.btnDark {
+  @apply bg-slate-900 hover:bg-slate-800 text-white px-4 py-3 rounded-xl no-underline font-bold transition;
+}
+
+.btnWhite {
+  @apply bg-white hover:bg-slate-200 text-slate-900 px-4 py-3 rounded-xl no-underline font-bold transition;
 }
 
 .btn-blue {
@@ -167,4 +64,68 @@ body {
 
 .btn-green {
   @apply bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg;
+}
+
+/* Kart Efekti */
+.cardHover {
+  transition: 0.25s;
+}
+
+.cardHover:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.18);
+}
+
+/* Kritik Efekti */
+.kritikGlow {
+  animation: kritikAnim 1.2s infinite;
+}
+
+@keyframes kritikAnim {
+  0% {
+    box-shadow: 0 0 0 rgba(220, 38, 38, 0.3);
+  }
+
+  50% {
+    box-shadow: 0 0 25px rgba(220, 38, 38, 0.9);
+  }
+
+  100% {
+    box-shadow: 0 0 0 rgba(220, 38, 38, 0.3);
+  }
+}
+
+/* ERP Ortak Tablo Sistemi */
+.erp-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+.erp-table {
+  width: max-content;
+  min-width: 100%;
+  table-layout: auto;
+  border-collapse: collapse;
+}
+
+.erp-table th,
+.erp-table td {
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* Uzun metinlerde sadece bunu kullan */
+.erp-table .wrap-text {
+  white-space: normal;
+  word-break: break-word;
+  min-width: 220px;
+  max-width: 420px;
+}
+
+/* İşlem butonları bozulmasın */
+.erp-table .actions {
+  white-space: nowrap;
+  min-width: 220px;
 }

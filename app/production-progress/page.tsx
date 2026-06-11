@@ -447,8 +447,8 @@ export default function ProductionProgressPage() {
             className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 mt-8"
           />
 
-          <div className="overflow-x-auto mt-8">
-            <table className="w-full border border-slate-300 text-sm min-w-[1400px]">
+          <div className="erp-table-wrap mt-8">
+  <table className="erp-table border border-slate-300 text-sm">
               <thead className="bg-slate-800 text-white">
                 <tr>
                   <Th>Tarih</Th>

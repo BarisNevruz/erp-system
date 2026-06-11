@@ -817,8 +817,8 @@ return searchMatch && statusMatch && dateMatch;
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 overflow-auto text-slate-900">
-          <table className="w-full border border-slate-300 text-sm min-w-[1900px]">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 erp-table-wrap text-slate-900">
+  <table className="erp-table border border-slate-300 text-sm">
             <thead className="bg-slate-800 text-white">
               <tr>
                 <th className="border border-slate-300 p-2">No</th>
