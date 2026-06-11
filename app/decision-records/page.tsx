@@ -918,13 +918,14 @@ return searchMatch && statusMatch && dateMatch;
                       </select>
                     </td>
 
-                    <td className="border border-slate-300 p-2">
-                      <input
-                        defaultValue={r.managerNote || ""}
-                        onBlur={(e) => updateManagerNote(r.id, e.target.value)}
-                        className="bg-white border border-slate-300 text-slate-900 rounded-lg px-2 py-1 w-full min-w-0 text-xs"
-                      />
-                    </td>
+                    <td className="border border-slate-300 p-2 align-top">
+  <textarea
+    defaultValue={r.managerNote || ""}
+    onBlur={(e) => updateManagerNote(r.id, e.target.value)}
+    rows={2}
+    className="bg-white border border-slate-300 text-slate-900 rounded-lg px-2 py-1 w-full min-w-0 text-xs resize-none"
+  />
+</td>
 
                     <td className="border border-slate-300 p-2 text-center">
                       <div className="flex flex-col gap-1 items-center justify-center">
