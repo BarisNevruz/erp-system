@@ -817,20 +817,20 @@ return searchMatch && statusMatch && dateMatch;
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 erp-table-wrap text-slate-900">
-  <table className="erp-table border border-slate-300 text-sm">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 overflow-x-auto text-slate-900">
+          <table className="w-full table-fixed border border-slate-300 text-sm">
             <thead className="bg-slate-800 text-white">
               <tr>
-                <th className="border border-slate-300 p-2">No</th>
-                <th className="border border-slate-300 p-2">Karar</th>
-                <th className="border border-slate-300 p-2">Sorumlu</th>
-                <th className="border border-slate-300 p-2">Birim</th>
-                <th className="border border-slate-300 p-2">Öncelik</th>
-                <th className="border border-slate-300 p-2">Termin</th>
-                <th className="border border-slate-300 p-2">Gecikme</th>
-                <th className="border border-slate-300 p-2">Durum</th>
-                <th className="border border-slate-300 p-2">Not</th>
-                <th className="border border-slate-300 p-2">İşlem</th>
+                <th className="border border-slate-300 p-2 w-12">No</th>
+                <th className="border border-slate-300 p-2 w-[30%]">Karar</th>
+                <th className="border border-slate-300 p-2 w-32">Sorumlu</th>
+                <th className="border border-slate-300 p-2 w-28">Birim</th>
+                <th className="border border-slate-300 p-2 w-24">Öncelik</th>
+                <th className="border border-slate-300 p-2 w-24">Termin</th>
+                <th className="border border-slate-300 p-2 w-20">Gecikme</th>
+                <th className="border border-slate-300 p-2 w-32">Durum</th>
+                <th className="border border-slate-300 p-2 w-44">Not</th>
+                <th className="border border-slate-300 p-2 w-36">İşlem</th>
               </tr>
             </thead>
 
@@ -847,15 +847,28 @@ return searchMatch && statusMatch && dateMatch;
                       {i + 1}
                     </td>
 
-                    <td className="border border-slate-300 p-2">
-                      {r.decision}
+                    <td className="border border-slate-300 p-2 align-top">
+                      <div
+                        style={{
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                          whiteSpace: "normal",
+                          wordBreak: "break-word",
+                          lineHeight: "1.25rem",
+                        }}
+                        title={r.decision}
+                      >
+                        {r.decision}
+                      </div>
                     </td>
 
-                    <td className="border border-slate-300 p-2">
+                    <td className="border border-slate-300 p-2 whitespace-normal break-words">
                       {r.responsible}
                     </td>
 
-                    <td className="border border-slate-300 p-2">
+                    <td className="border border-slate-300 p-2 whitespace-normal break-words">
                       {r.department}
                     </td>
 
@@ -897,22 +910,22 @@ return searchMatch && statusMatch && dateMatch;
                       <input
                         defaultValue={r.managerNote || ""}
                         onBlur={(e) => updateManagerNote(r.id, e.target.value)}
-                        className="bg-white border border-slate-300 text-slate-900 rounded-lg px-2 py-1 w-full"
+                        className="bg-white border border-slate-300 text-slate-900 rounded-lg px-2 py-1 w-full min-w-0"
                       />
                     </td>
 
                     <td className="border border-slate-300 p-2 text-center">
-                      <div className="flex gap-2 justify-center">
+                      <div className="flex flex-wrap gap-2 justify-center">
                         <button
                           onClick={() => startEdit(r)}
-                          className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg"
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded-lg text-xs"
                         >
                           Düzenle
                         </button>
 
                         <button
                           onClick={() => deleteRecord(r.id)}
-                          className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg"
+                          className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded-lg text-xs"
                         >
                           Sil
                         </button>
@@ -979,34 +992,7 @@ return searchMatch && statusMatch && dateMatch;
     </p>
   )}
 </div>
-                  <div className="border border-slate-300 rounded-xl p-3 max-h-48 overflow-auto">
-  <p className="font-bold mb-2">
-    Kayıtlı Mail Adresleri
-  </p>
-
-  {mailContacts.map((c) => (
-    <label
-      key={c.id}
-      className="flex gap-2 items-center mb-2"
-    >
-      <input
-        type="checkbox"
-        checked={selectedContacts.includes(c.email)}
-        onChange={() => toggleContact(c.email)}
-      />
-
-      <span>
-        {c.name} - {c.email}
-      </span>
-    </label>
-  ))}
-
-  {mailContacts.length === 0 && (
-    <p className="text-slate-500">
-      Kayıtlı mail adresi yok.
-    </p>
-  )}
-</div>
+                  
                 
 
                 <input
