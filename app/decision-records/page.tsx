@@ -609,7 +609,7 @@ return searchMatch && statusMatch && dateMatch;
     <main className="min-h-screen bg-slate-100 flex">
       <Sidebar fullName="Barış Nevruz" role="Yönetici" />
 
-      <section className="flex-1 p-8 overflow-x-hidden">
+      <section className="flex-1 min-w-0 p-8 overflow-x-hidden">
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-6 text-slate-900">
           <h1 className="text-3xl font-bold text-slate-900">
             Karar Kayıtları
@@ -817,20 +817,32 @@ return searchMatch && statusMatch && dateMatch;
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 overflow-x-auto text-slate-900">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 overflow-hidden text-slate-900">
           <table className="w-full table-fixed border border-slate-300 text-sm">
+            <colgroup>
+              <col style={{ width: "4%" }} />
+              <col style={{ width: "28%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "8%" }} />
+              <col style={{ width: "8%" }} />
+              <col style={{ width: "8%" }} />
+              <col style={{ width: "7%" }} />
+              <col style={{ width: "11%" }} />
+              <col style={{ width: "8%" }} />
+              <col style={{ width: "8%" }} />
+            </colgroup>
             <thead className="bg-slate-800 text-white">
               <tr>
-                <th className="border border-slate-300 p-2 w-12">No</th>
-                <th className="border border-slate-300 p-2 w-[30%]">Karar</th>
-                <th className="border border-slate-300 p-2 w-32">Sorumlu</th>
-                <th className="border border-slate-300 p-2 w-28">Birim</th>
-                <th className="border border-slate-300 p-2 w-24">Öncelik</th>
-                <th className="border border-slate-300 p-2 w-24">Termin</th>
-                <th className="border border-slate-300 p-2 w-20">Gecikme</th>
-                <th className="border border-slate-300 p-2 w-32">Durum</th>
-                <th className="border border-slate-300 p-2 w-44">Not</th>
-                <th className="border border-slate-300 p-2 w-36">İşlem</th>
+                <th className="border border-slate-300 p-2">No</th>
+                <th className="border border-slate-300 p-2">Karar</th>
+                <th className="border border-slate-300 p-2">Sorumlu</th>
+                <th className="border border-slate-300 p-2">Birim</th>
+                <th className="border border-slate-300 p-2">Öncelik</th>
+                <th className="border border-slate-300 p-2">Termin</th>
+                <th className="border border-slate-300 p-2">Gecikme</th>
+                <th className="border border-slate-300 p-2">Durum</th>
+                <th className="border border-slate-300 p-2">Not</th>
+                <th className="border border-slate-300 p-2">İşlem</th>
               </tr>
             </thead>
 
@@ -864,17 +876,17 @@ return searchMatch && statusMatch && dateMatch;
                       </div>
                     </td>
 
-                    <td className="border border-slate-300 p-2 whitespace-normal break-words">
+                    <td className="border border-slate-300 p-2 align-top whitespace-normal break-words leading-5">
                       {r.responsible}
                     </td>
 
-                    <td className="border border-slate-300 p-2 whitespace-normal break-words">
+                    <td className="border border-slate-300 p-2 align-top whitespace-normal break-words leading-5">
                       {r.department}
                     </td>
 
                     <td className="border border-slate-300 p-2 text-center">
                       <span
-                        className={`inline-block border rounded-lg px-3 py-1 ${getPriorityClass(
+                        className={`inline-block border rounded-lg px-2 py-1 text-xs ${getPriorityClass(
                           r.priority
                         )}`}
                       >
@@ -882,7 +894,7 @@ return searchMatch && statusMatch && dateMatch;
                       </span>
                     </td>
 
-                    <td className="border border-slate-300 p-2">
+                    <td className="border border-slate-300 p-2 text-center whitespace-nowrap">
                       {r.deadline}
                     </td>
 
@@ -894,7 +906,7 @@ return searchMatch && statusMatch && dateMatch;
                       <select
                         value={r.status}
                         onChange={(e) => updateStatus(r.id, e.target.value)}
-                        className={`border rounded-lg px-2 py-1 ${getStatusClass(
+                        className={`w-full border rounded-lg px-1 py-1 text-xs ${getStatusClass(
                           r.status,
                           lateStatus
                         )}`}
@@ -910,22 +922,22 @@ return searchMatch && statusMatch && dateMatch;
                       <input
                         defaultValue={r.managerNote || ""}
                         onBlur={(e) => updateManagerNote(r.id, e.target.value)}
-                        className="bg-white border border-slate-300 text-slate-900 rounded-lg px-2 py-1 w-full min-w-0"
+                        className="bg-white border border-slate-300 text-slate-900 rounded-lg px-2 py-1 w-full min-w-0 text-xs"
                       />
                     </td>
 
                     <td className="border border-slate-300 p-2 text-center">
-                      <div className="flex flex-wrap gap-2 justify-center">
+                      <div className="flex flex-col gap-1 items-center justify-center">
                         <button
                           onClick={() => startEdit(r)}
-                          className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded-lg text-xs"
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded-lg text-xs w-full"
                         >
                           Düzenle
                         </button>
 
                         <button
                           onClick={() => deleteRecord(r.id)}
-                          className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded-lg text-xs"
+                          className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded-lg text-xs w-full"
                         >
                           Sil
                         </button>
