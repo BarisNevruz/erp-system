@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import AzureADProvider from "next-auth/providers/azure-ad";
 
-export const authOptions = {
+const handler = NextAuth({
   providers: [
     AzureADProvider({
       clientId: process.env.AZURE_AD_CLIENT_ID!,
@@ -37,17 +37,17 @@ export const authOptions = {
     },
 
     async session({ session, token }: any) {
-      session.accessToken = token.accessToken;
-      session.refreshToken = token.refreshToken;
-      return session;
+      return {
+        ...session,
+        accessToken: token.accessToken,
+        refreshToken: token.refreshToken,
+      };
     },
 
     async redirect({ baseUrl }: any) {
       return `${baseUrl}/dashboard`;
     },
   },
-};
-
-const handler = NextAuth(authOptions);
+});
 
 export { handler as GET, handler as POST };
