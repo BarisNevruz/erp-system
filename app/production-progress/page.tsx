@@ -1,14 +1,17 @@
 "use client";
 
-import Sidebar from "@/components/Sidebar";
 import { useEffect, useState } from "react";
+import Sidebar from "@/components/Sidebar";
 import { supabase } from "@/lib/supabase";
 
-type Project = {
+type CustomerOrder = {
   id: string;
-  proje_adi: string;
-  musteri_adi?: string;
+  siparis_no?: string;
+  musteri?: string;
+  proje_adi?: string;
   urun_tipi?: string;
+  adet?: number;
+  termin_tarihi?: string;
 };
 
 type Worker = {
@@ -18,25 +21,26 @@ type Worker = {
   active: boolean;
 };
 
-type Progress = {
+type Production = {
   id: string;
-  project_order_id: string;
-  proje_adi: string;
-  urun_tipi?: string;
-  asama: string;
-  baslangic_tarihi: string;
-  bitis_tarihi?: string | null;
+  project_id: string;
+  customer_order_id?: string;
+  uretim_no?: string;
+  uretim_durumu: string;
   uretim_yuzdesi: number;
-  genel_uretim_yuzdesi?: number;
-  worker_ids?: string[];
-  personel_sayisi?: number;
-  calisma_saati?: number;
-  adam_saat?: number;
-  aciklama?: string;
-  created_at?: string;
+  son_asama?: string;
+  sorumlu?: string;
+  notlar?: string;
+  baslama_tarihi?: string;
+  bitis_tarihi?: string;
+};
+
+type Row = Production & {
+  order?: CustomerOrder;
 };
 
 const STAGES = [
+  "Planlama",
   "Şase Kanat Montajı",
   "Şase Kanat Kaynağı",
   "Genel Montaj",
@@ -52,228 +56,167 @@ const STAGES = [
   "Sevk",
 ];
 
-const STAGE_WEIGHTS: Record<string, number> = {
-  "Şase Kanat Montajı": 5,
-  "Şase Kanat Kaynağı": 5,
-  "Genel Montaj": 20,
-  "Genel Kaynak": 15,
-  "Aksesuar Montajı": 5,
-  "Aksesuar Kaynağı": 5,
-  "Taşlama Temizlik": 5,
-  Kumlama: 5,
-  Metalizasyon: 5,
-  Astarlama: 5,
-  Boyama: 15,
-  "Konfor Montajı": 5,
-  Sevk: 5,
-};
+const DURUMLAR = [
+  "Planlandı",
+  "Üretime Başlandı",
+  "Devam Ediyor",
+  "Beklemede",
+  "Tamamlandı",
+  "Sevk Edildi",
+];
 
-export default function ProductionProgressPage() {
-  const [projects, setProjects] = useState<Project[]>([]);
+export default function ProductionProjectsPage() {
+  const [rows, setRows] = useState<Row[]>([]);
   const [workers, setWorkers] = useState<Worker[]>([]);
-  const [records, setRecords] = useState<Progress[]>([]);
+  const [selectedProductionId, setSelectedProductionId] = useState("");
+  const [search, setSearch] = useState("");
 
-  const [progressDate, setProgressDate] = useState(
-    new Date().toISOString().split("T")[0]
-  );
-  const [projectId, setProjectId] = useState("");
-  const [stage, setStage] = useState(STAGES[0]);
-  const [progressPercent, setProgressPercent] = useState("");
-  const [calismaSaati, setCalismaSaati] = useState("");
-  const [selectedWorkers, setSelectedWorkers] = useState<string[]>([]);
-  const [description, setDescription] = useState("");
-  const [arama, setArama] = useState("");
+  const [uretimDurumu, setUretimDurumu] = useState("Planlandı");
+  const [uretimYuzdesi, setUretimYuzdesi] = useState(0);
+  const [sonAsama, setSonAsama] = useState("Planlama");
+  const [sorumlu, setSorumlu] = useState("");
+  const [notlar, setNotlar] = useState("");
+  const [baslamaTarihi, setBaslamaTarihi] = useState("");
+  const [bitisTarihi, setBitisTarihi] = useState("");
 
   useEffect(() => {
-    verileriGetir();
+    loadData();
   }, []);
 
-  async function verileriGetir() {
-    const { data: projectData, error: projectError } = await supabase
-      .from("project_orders")
-      .select("id, proje_adi, musteri_adi, urun_tipi")
-      .order("proje_adi", { ascending: true });
+  async function loadData() {
+    const { data: orders, error: orderError } = await supabase
+      .from("customer_orders")
+      .select("*");
 
-    if (projectError) {
-      alert("Proje siparişleri alınamadı: " + projectError.message);
+    if (orderError) {
+      alert("Müşteri siparişleri alınamadı: " + orderError.message);
       return;
     }
 
-    const { data: workerData, error: workerError } = await supabase
+    const { data: productions, error: productionError } = await supabase
+      .from("production_tracking")
+      .select("*")
+      .order("uretim_no", { ascending: true });
+
+    if (productionError) {
+      alert("Üretim kayıtları alınamadı: " + productionError.message);
+      return;
+    }
+
+    const { data: workerData } = await supabase
       .from("production_workers")
       .select("*")
       .eq("active", true)
       .order("full_name", { ascending: true });
 
-    if (workerError) {
-      alert("Personel listesi alınamadı: " + workerError.message);
-      return;
-    }
+    const combined =
+  productions?.map((p: Production) => {
+    const linkedOrderId = p.customer_order_id || p.project_id;
 
-    const { data: progressData, error: progressError } = await supabase
-      .from("production_progress")
-      .select("*")
-      .order("created_at", { ascending: false });
+    const order = orders?.find(
+      (o: CustomerOrder) => String(o.id) === String(linkedOrderId)
+    );
 
-    if (progressError) {
-      alert("Üretim ilerleme kayıtları alınamadı: " + progressError.message);
-      return;
-    }
+    return {
+      ...p,
+      order,
+    };
+  }) || [];
 
-    setProjects(projectData || []);
+    setRows(combined);
     setWorkers(workerData || []);
-    setRecords(progressData || []);
   }
 
-  function personelSec(id: string) {
-    if (selectedWorkers.includes(id)) {
-      setSelectedWorkers(selectedWorkers.filter((x) => x !== id));
-    } else {
-      setSelectedWorkers([...selectedWorkers, id]);
-    }
+  function selectProduction(id: string) {
+    setSelectedProductionId(id);
+
+    const selected = rows.find((r) => r.id === id);
+
+    if (!selected) return;
+
+    setUretimDurumu(selected.uretim_durumu || "Planlandı");
+    setUretimYuzdesi(Number(selected.uretim_yuzdesi || 0));
+    setSonAsama(selected.son_asama || "Planlama");
+    setSorumlu(selected.sorumlu || "");
+    setNotlar(selected.notlar || "");
+    setBaslamaTarihi(selected.baslama_tarihi || "");
+    setBitisTarihi(selected.bitis_tarihi || "");
   }
 
-  function workerNames(ids?: string[]) {
-    if (!ids || ids.length === 0) return "-";
-
-    return ids
-      .map((id) => workers.find((w) => w.id === id)?.full_name)
-      .filter(Boolean)
-      .join(", ");
-  }
-
-  async function projeYuzdesiniGuncelle(projectOrderId: string, projeAdi?: string) {
-    const { data: projeKayitlari } = await supabase
-      .from("production_progress")
-      .select("genel_uretim_yuzdesi")
-      .eq("project_order_id", projectOrderId);
-
-    const genelToplam =
-      projeKayitlari?.reduce(
-        (sum, item) => sum + Number(item.genel_uretim_yuzdesi || 0),
-        0
-      ) || 0;
-
-    const projeGenelYuzde = Math.min(100, Math.round(genelToplam));
-
-    if (projeAdi) {
-      await supabase
-        .from("production_projects")
-        .update({ progress_percent: projeGenelYuzde })
-        .eq("project_name", projeAdi);
-    }
-  }
-
-  async function kaydet() {
-    if (!projectId) {
-      alert("Lütfen proje seçiniz.");
+  async function saveProgress() {
+    if (!selectedProductionId) {
+      alert("Lütfen üretim numarası seçiniz.");
       return;
     }
 
-    if (selectedWorkers.length === 0) {
-      alert("Lütfen en az 1 personel seçiniz.");
-      return;
-    }
+    const percent = Math.max(0, Math.min(100, Number(uretimYuzdesi) || 0));
 
-    const percent = Number(progressPercent || 0);
-    const saat = Number(calismaSaati || 0);
-
-    if (percent < 0 || percent > 100) {
-      alert("İlerleme yüzdesi 0 ile 100 arasında olmalıdır.");
-      return;
-    }
-
-    if (saat <= 0) {
-      alert("Çalışma saati 0'dan büyük olmalıdır.");
-      return;
-    }
-
-    const seciliProje = projects.find((p) => p.id === projectId);
-    const asamaAgirligi = STAGE_WEIGHTS[stage] || 0;
-    const genelUretimYuzdesi = Number(
-      ((percent * asamaAgirligi) / 100).toFixed(2)
-    );
-    const personelSayisi = selectedWorkers.length;
-    const adamSaat = personelSayisi * saat;
-
-    const { data: mevcutKayit, error: kontrolError } = await supabase
-      .from("production_progress")
-      .select("id")
-      .eq("project_order_id", projectId)
-      .eq("asama", stage)
-      .maybeSingle();
-
-    if (kontrolError) {
-      alert("Mevcut kayıt kontrol hatası: " + kontrolError.message);
-      return;
-    }
-
-    if (mevcutKayit) {
-      const { error } = await supabase
-        .from("production_progress")
-        .update({
-          baslangic_tarihi: progressDate,
-          uretim_yuzdesi: percent,
-          genel_uretim_yuzdesi: genelUretimYuzdesi,
-          worker_ids: selectedWorkers,
-          personel_sayisi: personelSayisi,
-          calisma_saati: saat,
-          adam_saat: adamSaat,
-          aciklama: description,
-        })
-        .eq("id", mevcutKayit.id);
-
-      if (error) {
-        alert("Güncelleme hatası: " + error.message);
-        return;
-      }
-    } else {
-      const { error } = await supabase.from("production_progress").insert([
-        {
-          project_order_id: projectId,
-          proje_adi: seciliProje?.proje_adi || "",
-          urun_tipi: seciliProje?.urun_tipi || "",
-          asama: stage,
-          baslangic_tarihi: progressDate,
-          bitis_tarihi: null,
-          uretim_yuzdesi: percent,
-          genel_uretim_yuzdesi: genelUretimYuzdesi,
-          worker_ids: selectedWorkers,
-          personel_sayisi: personelSayisi,
-          calisma_saati: saat,
-          adam_saat: adamSaat,
-          aciklama: description,
-        },
-      ]);
-
-      if (error) {
-        alert("Kayıt hatası: " + error.message);
-        return;
-      }
-    }
-
-    await projeYuzdesiniGuncelle(projectId, seciliProje?.proje_adi);
-
-    alert(
-      mevcutKayit
-        ? "Mevcut aşama güncellendi."
-        : "Yeni üretim ilerlemesi kaydedildi."
-    );
-
-    setProgressPercent("");
-    setCalismaSaati("");
-    setSelectedWorkers([]);
-    setDescription("");
-    verileriGetir();
-  }
-
-  async function sil(id: string) {
-    if (!confirm("Bu üretim ilerleme kaydını silmek istiyor musunuz?")) return;
-
-    const silinecekKayit = records.find((r) => r.id === id);
+    const finalStatus =
+      percent >= 100 && uretimDurumu !== "Sevk Edildi"
+        ? "Tamamlandı"
+        : uretimDurumu;
 
     const { error } = await supabase
-      .from("production_progress")
+      .from("production_tracking")
+      .update({
+        uretim_durumu: finalStatus,
+        uretim_yuzdesi: percent,
+        son_asama: sonAsama,
+        sorumlu,
+        notlar,
+        baslama_tarihi: baslamaTarihi || null,
+        bitis_tarihi: bitisTarihi || null,
+      })
+      .eq("id", selectedProductionId);
+
+    if (error) {
+      alert("Üretim güncelleme hatası: " + error.message);
+      return;
+    }
+
+    alert("Üretim ilerlemesi güncellendi.");
+    loadData();
+  }
+
+  function exportExcel() {
+    const exportRows = filteredRows.map((r) => ({
+      "Üretim No": r.uretim_no || "",
+      Müşteri: r.order?.musteri || "",
+      Proje: r.order?.proje_adi || "",
+      Ürün: r.order?.urun_tipi || "",
+      Termin: r.order?.termin_tarihi || "",
+      Durum: r.uretim_durumu || "",
+      "Üretim %": r.uretim_yuzdesi || 0,
+      "Son Aşama": r.son_asama || "",
+      Sorumlu: r.sorumlu || "",
+      Not: r.notlar || "",
+    }));
+
+    const header = Object.keys(exportRows[0] || {});
+    const csv = [
+      header.join(";"),
+      ...exportRows.map((r: any) =>
+        header.map((h) => `"${r[h] || ""}"`).join(";")
+      ),
+    ].join("\n");
+
+    const blob = new Blob(["\uFEFF" + csv], {
+      type: "application/vnd.ms-excel;charset=utf-8;",
+    });
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "uretim-projeleri.xls";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function deleteProduction(id: string) {
+    if (!confirm("Bu üretim kaydını silmek istiyor musunuz?")) return;
+
+    const { error } = await supabase
+      .from("production_tracking")
       .delete()
       .eq("id", id);
 
@@ -282,239 +225,259 @@ export default function ProductionProgressPage() {
       return;
     }
 
-    if (silinecekKayit) {
-      await projeYuzdesiniGuncelle(
-        silinecekKayit.project_order_id,
-        silinecekKayit.proje_adi
-      );
-    }
-
-    alert("Kayıt silindi ve proje ilerleme yüzdesi güncellendi.");
-    verileriGetir();
+    alert("Üretim kaydı silindi.");
+    loadData();
   }
 
-  const filtreliRecords = records.filter((r) => {
-    const text = `
-      ${r.baslangic_tarihi || ""}
-      ${r.proje_adi || ""}
-      ${r.urun_tipi || ""}
-      ${r.asama || ""}
-      ${r.aciklama || ""}
-      ${workerNames(r.worker_ids)}
-    `.toLowerCase();
+  const filteredRows = rows.filter((r) => {
+  const text = `
+    ${r.uretim_no || ""}
+    ${r.order?.musteri || ""}
+    ${r.order?.proje_adi || ""}
+    ${r.order?.urun_tipi || ""}
+    ${r.uretim_durumu || ""}
+    ${r.son_asama || ""}
+    ${r.sorumlu || ""}
+    ${r.notlar || ""}
+  `.toLowerCase();
 
-    return text.includes(arama.toLowerCase());
-  });
+  return text.includes(search.toLowerCase());
+});
+
+  const selectedRow = rows.find((r) => r.id === selectedProductionId);
 
   return (
     <main className="min-h-screen bg-slate-100 flex">
       <Sidebar fullName="Barış Nevruz" role="Yönetici" />
 
-      <section className="flex-1 p-4 md:p-8 overflow-x-auto">
-        <div className="max-w-7xl mx-auto bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-slate-900">
-          <h1 className="text-3xl font-bold">Günlük Üretim İlerlemesi</h1>
-
-          <p className="text-slate-600 mt-2">
-            Proje bazlı üretim aşaması, personel ve adam-saat kaydı.
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8">
-            <Kpi title="Toplam Kayıt" value={records.length} />
-            <Kpi title="Proje Siparişi" value={projects.length} />
-            <Kpi title="Aktif Personel" value={workers.length} />
-            <Kpi title="Aşama Sayısı" value={STAGES.length} />
+      <section className="flex-1 p-6 overflow-x-hidden">
+        <div className="max-w-7xl mx-auto space-y-6">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">
+              Üretim Projeleri
+            </h1>
+            <p className="text-slate-500">
+              Üretim numarası bazlı ilerleme, aşama, sorumlu ve not girişi.
+            </p>
           </div>
 
-          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 mt-8">
-            <h2 className="text-xl font-bold mb-4">Yeni İlerleme Kaydı</h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <Kpi title="Toplam Üretim" value={rows.length} />
+            <Kpi
+              title="Devam Eden"
+              value={
+                rows.filter(
+                  (r) =>
+                    r.uretim_durumu === "Devam Ediyor" ||
+                    r.uretim_durumu === "Üretime Başlandı"
+                ).length
+              }
+            />
+            <Kpi
+              title="Tamamlanan"
+              value={
+                rows.filter(
+                  (r) =>
+                    r.uretim_durumu === "Tamamlandı" ||
+                    r.uretim_durumu === "Sevk Edildi"
+                ).length
+              }
+            />
+            <Kpi title="Aktif Personel" value={workers.length} />
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              <div>
-                <label className="label">Tarih</label>
-                <input
-                  type="date"
-                  value={progressDate}
-                  onChange={(e) => setProgressDate(e.target.value)}
-                  className="input"
-                />
-              </div>
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+            <h2 className="text-lg font-bold text-slate-900 mb-4">
+              Üretim İlerlemesi Gir
+            </h2>
 
-              <div>
-                <label className="label">Proje</label>
-                <select
-                  value={projectId}
-                  onChange={(e) => setProjectId(e.target.value)}
-                  className="input"
-                >
-                  <option value="">Proje seçiniz</option>
-                  {projects.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.proje_adi}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="label">Üretim Aşaması</label>
-                <select
-                  value={stage}
-                  onChange={(e) => setStage(e.target.value)}
-                  className="input"
-                >
-                  {STAGES.map((s) => (
-                    <option key={s} value={s}>
-                      {s} (%{STAGE_WEIGHTS[s]})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="label">Aşama İlerlemesi %</label>
-                <input
-                  type="number"
-                  value={progressPercent}
-                  onChange={(e) => setProgressPercent(e.target.value)}
-                  className="input"
-                  placeholder="0 - 100"
-                />
-              </div>
-
-              <div>
-                <label className="label">Çalışma Saati</label>
-                <input
-                  type="number"
-                  value={calismaSaati}
-                  onChange={(e) => setCalismaSaati(e.target.value)}
-                  className="input"
-                  placeholder="Örn: 8"
-                />
-              </div>
-            </div>
-
-            <div className="mt-6">
-              <label className="label">Çalışan Personeller</label>
-
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mt-2">
-                {workers.map((w) => (
-                  <label
-                    key={w.id}
-                    className="flex items-center gap-2 bg-white border border-slate-300 rounded-xl px-4 py-3"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedWorkers.includes(w.id)}
-                      onChange={() => personelSec(w.id)}
-                    />
-                    <span>
-                      {w.full_name}
-                      {w.department ? ` - ${w.department}` : ""}
-                    </span>
-                  </label>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <select
+                value={selectedProductionId}
+                onChange={(e) => selectProduction(e.target.value)}
+                className="border border-slate-300 rounded-xl px-4 py-3 text-slate-900"
+              >
+                <option value="">Üretim no seçiniz</option>
+                {rows.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.uretim_no} - {r.order?.musteri || "-"} -{" "}
+                    {r.order?.proje_adi || "-"}
+                  </option>
                 ))}
+              </select>
 
-                {workers.length === 0 && (
-                  <div className="text-slate-500">
-                    Aktif üretim personeli bulunamadı.
-                  </div>
-                )}
-              </div>
-            </div>
+              <select
+                value={uretimDurumu}
+                onChange={(e) => setUretimDurumu(e.target.value)}
+                className="border border-slate-300 rounded-xl px-4 py-3 text-slate-900"
+              >
+                {DURUMLAR.map((d) => (
+                  <option key={d}>{d}</option>
+                ))}
+              </select>
 
-            <div className="mt-6">
-              <label className="label">Açıklama</label>
+              <select
+                value={sonAsama}
+                onChange={(e) => setSonAsama(e.target.value)}
+                className="border border-slate-300 rounded-xl px-4 py-3 text-slate-900"
+              >
+                {STAGES.map((s) => (
+                  <option key={s}>{s}</option>
+                ))}
+              </select>
+
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={uretimYuzdesi}
+                onChange={(e) => setUretimYuzdesi(Number(e.target.value))}
+                placeholder="Üretim %"
+                className="border border-slate-300 rounded-xl px-4 py-3 text-slate-900"
+              />
+
+              <select
+                value={sorumlu}
+                onChange={(e) => setSorumlu(e.target.value)}
+                className="border border-slate-300 rounded-xl px-4 py-3 text-slate-900"
+              >
+                <option value="">Sorumlu seçiniz</option>
+                {workers.map((w) => (
+                  <option key={w.id} value={w.full_name}>
+                    {w.full_name}
+                    {w.department ? ` - ${w.department}` : ""}
+                  </option>
+                ))}
+              </select>
+
+              <input
+                type="date"
+                value={baslamaTarihi}
+                onChange={(e) => setBaslamaTarihi(e.target.value)}
+                className="border border-slate-300 rounded-xl px-4 py-3 text-slate-900"
+              />
+
+              <input
+                type="date"
+                value={bitisTarihi}
+                onChange={(e) => setBitisTarihi(e.target.value)}
+                className="border border-slate-300 rounded-xl px-4 py-3 text-slate-900"
+              />
+
+              <button
+                onClick={saveProgress}
+                className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-4 py-3 font-semibold"
+              >
+                İlerlemeyi Kaydet
+              </button>
+
               <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 min-h-[100px]"
-                placeholder="Bugünkü üretim ilerlemesi..."
+                value={notlar}
+                onChange={(e) => setNotlar(e.target.value)}
+                placeholder="Üretim notu"
+                rows={2}
+                className="md:col-span-4 border border-slate-300 rounded-xl px-4 py-3 text-slate-900"
               />
             </div>
 
-            <button
-              onClick={kaydet}
-              className="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold"
-            >
-              İlerlemeyi Kaydet
-            </button>
+            {selectedRow && (
+              <div className="mt-4 bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm text-slate-700">
+                Seçilen üretim:{" "}
+                <b>{selectedRow.uretim_no}</b> / {selectedRow.order?.musteri} /{" "}
+                {selectedRow.order?.proje_adi} / {selectedRow.order?.urun_tipi}
+              </div>
+            )}
           </div>
 
-          <input
-            value={arama}
-            onChange={(e) => setArama(e.target.value)}
-            placeholder="Proje, ürün tipi, aşama, personel veya açıklama ara..."
-            className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 mt-8"
-          />
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Üretim no, müşteri, proje, aşama ara..."
+                className="border border-slate-300 rounded-xl px-4 py-3 text-slate-900"
+              />
 
-          <div className="erp-table-wrap mt-8">
-  <table className="erp-table border border-slate-300 text-sm">
-              <thead className="bg-slate-800 text-white">
-                <tr>
-                  <Th>Tarih</Th>
-                  <Th>Proje</Th>
-                  <Th>Ürün Tipi</Th>
-                  <Th>Aşama</Th>
-                  <Th>Aşama %</Th>
-                  <Th>Genel Katkı %</Th>
-                  <Th>Personel</Th>
-                  <Th>Kişi</Th>
-                  <Th>Saat</Th>
-                  <Th>Adam/Saat</Th>
-                  <Th>Açıklama</Th>
-                  <Th>İşlem</Th>
-                </tr>
-              </thead>
+              <button
+                onClick={loadData}
+                className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-4 py-3 font-semibold"
+              >
+                Yenile
+              </button>
 
-              <tbody>
-                {filtreliRecords.map((r) => (
-                  <tr key={r.id} className="bg-white text-slate-900">
-                    <Td>{r.baslangic_tarihi || "-"}</Td>
-                    <Td>{r.proje_adi || "-"}</Td>
-                    <Td>{r.urun_tipi || "-"}</Td>
-                    <Td>{r.asama || "-"}</Td>
-                    <Td>
-                      <div className="w-32 bg-slate-200 rounded-full h-3 overflow-hidden">
+              <button
+                onClick={exportExcel}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-4 py-3 font-semibold"
+              >
+                Excel'e Aktar
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {filteredRows.map((r) => (
+              <div
+                key={r.id}
+                className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm"
+              >
+                <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+                  <Info title="Üretim No" value={r.uretim_no || "-"} bold />
+                  <Info title="Müşteri" value={r.order?.musteri || "-"} />
+                  <Info title="Proje" value={r.order?.proje_adi || "-"} />
+                  <Info title="Ürün" value={r.order?.urun_tipi || "-"} />
+                  <Info title="Termin" value={r.order?.termin_tarihi || "-"} />
+                  <Info title="Durum" value={r.uretim_durumu || "-"} />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-4 pt-4 border-t border-slate-100">
+                  <div>
+                    <p className="text-xs text-slate-500">Üretim %</p>
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 bg-slate-200 rounded-full h-2">
                         <div
-                          className="bg-blue-600 h-3 rounded-full"
+                          className="bg-green-600 h-2 rounded-full"
                           style={{
                             width: `${Math.min(
-                              100,
-                              Number(r.uretim_yuzdesi || 0)
+                              Number(r.uretim_yuzdesi || 0),
+                              100
                             )}%`,
                           }}
                         />
                       </div>
-                      <span className="text-xs font-semibold">
-                        %{r.uretim_yuzdesi || 0}
+                      <span className="font-bold text-slate-900">
+                        {r.uretim_yuzdesi || 0}%
                       </span>
-                    </Td>
-                    <Td>%{Number(r.genel_uretim_yuzdesi || 0)}</Td>
-                    <Td>{workerNames(r.worker_ids)}</Td>
-                    <Td>{r.personel_sayisi || 0}</Td>
-                    <Td>{r.calisma_saati || 0}</Td>
-                    <Td>{r.adam_saat || 0}</Td>
-                    <Td>{r.aciklama || "-"}</Td>
-                    <Td>
-                      <button
-                        onClick={() => sil(r.id)}
-                        className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg"
-                      >
-                        Sil
-                      </button>
-                    </Td>
-                  </tr>
-                ))}
+                    </div>
+                  </div>
 
-                {filtreliRecords.length === 0 && (
-                  <tr>
-                    <td colSpan={12} className="p-6 text-center text-slate-500">
-                      Üretim ilerleme kaydı bulunamadı.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  <Info title="Son Aşama" value={r.son_asama || "-"} />
+                  <Info title="Sorumlu" value={r.sorumlu || "-"} />
+                  <Info title="Not" value={r.notlar || "-"} />
+
+                  <div className="flex gap-2 items-end">
+                    <button
+                      onClick={() => selectProduction(r.id)}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-3 py-2 font-semibold"
+                    >
+                      Düzenle
+                    </button>
+
+                    <button
+                      onClick={() => deleteProduction(r.id)}
+                      className="bg-red-600 hover:bg-red-700 text-white rounded-lg px-3 py-2 font-semibold"
+                    >
+                      Sil
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {filteredRows.length === 0 && (
+              <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-500">
+                Üretim kaydı bulunamadı.
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -524,19 +487,30 @@ export default function ProductionProgressPage() {
 
 function Kpi({ title, value }: { title: string; value: number }) {
   return (
-    <div className="rounded-2xl p-5 border bg-slate-50 border-slate-200">
-      <p className="text-slate-600 font-semibold">{title}</p>
-      <p className="text-2xl font-bold mt-1 text-slate-900">
+    <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+      <p className="text-slate-500 text-sm">{title}</p>
+      <p className="text-3xl font-bold text-slate-900 mt-2">
         {Number(value || 0).toLocaleString("tr-TR")}
       </p>
     </div>
   );
 }
 
-function Th({ children }: { children: React.ReactNode }) {
-  return <th className="border border-slate-300 p-2 text-left">{children}</th>;
-}
-
-function Td({ children }: { children: React.ReactNode }) {
-  return <td className="border border-slate-300 p-2 align-top">{children}</td>;
+function Info({
+  title,
+  value,
+  bold = false,
+}: {
+  title: string;
+  value: string | number;
+  bold?: boolean;
+}) {
+  return (
+    <div>
+      <p className="text-xs text-slate-500">{title}</p>
+      <p className={bold ? "font-bold text-slate-900" : "text-slate-800"}>
+        {value}
+      </p>
+    </div>
+  );
 }
