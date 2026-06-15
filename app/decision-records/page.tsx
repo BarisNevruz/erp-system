@@ -88,6 +88,7 @@ export default function DecisionRecordsPage() {
   const [form, setForm] = useState<FormState>(emptyForm());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [mailPreview, setMailPreview] = useState<MailPreview | null>(null);
+  const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
     loadRecords();
@@ -201,7 +202,6 @@ export default function DecisionRecordsPage() {
       return "bg-blue-100 text-blue-700 border-blue-300 font-bold";
     if (status === "İptal")
       return "bg-slate-200 text-slate-700 border-slate-300 font-bold";
-
     return "bg-yellow-100 text-yellow-700 border-yellow-300 font-bold";
   }
 
@@ -214,7 +214,6 @@ export default function DecisionRecordsPage() {
       return "bg-blue-100 text-blue-700 border-blue-300 font-bold";
     if (priority === "Düşük")
       return "bg-slate-100 text-slate-700 border-slate-300 font-bold";
-
     return "bg-white text-slate-900 border-slate-300";
   }
 
@@ -291,11 +290,13 @@ export default function DecisionRecordsPage() {
 
     setForm(emptyForm());
     setEditingId(null);
+    setShowForm(false);
     loadRecords();
   }
 
   function startEdit(r: Decision) {
     setEditingId(r.id);
+    setShowForm(true);
 
     setForm({
       meetingNo: r.meetingNo || "",
@@ -317,6 +318,7 @@ export default function DecisionRecordsPage() {
   function cancelEdit() {
     setEditingId(null);
     setForm(emptyForm());
+    setShowForm(false);
   }
 
   async function updateStatus(id: string, newStatus: string) {
@@ -362,50 +364,92 @@ export default function DecisionRecordsPage() {
     const unique = Array.from(
       new Set(records.map((r) => r.meetingNo).filter(Boolean))
     );
-
     return unique.sort((a, b) => b.localeCompare(a, "tr"));
   }, [records]);
 
   const filteredRecords = records.filter((r) => {
-  const recordDate = r.meetingDate || r.createdAt?.split("T")[0] || "";
+    const recordDate = r.meetingDate || r.createdAt?.split("T")[0] || "";
 
-  const text = `
-    ${r.meetingNo}
-    ${r.decision}
-    ${r.responsible}
-    ${r.department}
-    ${r.meetingType}
-    ${r.meetingPlace}
-    ${r.priority}
-  `.toLowerCase();
+    const text = `
+      ${r.meetingNo}
+      ${r.decision}
+      ${r.responsible}
+      ${r.department}
+      ${r.meetingType}
+      ${r.meetingPlace}
+      ${r.priority}
+    `.toLowerCase();
 
-  const searchMatch = text.includes(search.toLowerCase());
+    const searchMatch = text.includes(search.toLowerCase());
+    const meetingNoMatch =
+      meetingNoFilter === "Tümü" || r.meetingNo === meetingNoFilter;
 
-  const meetingNoMatch =
-    meetingNoFilter === "Tümü" || r.meetingNo === meetingNoFilter;
+    let statusMatch = true;
 
-  let statusMatch = true;
+    if (statusFilter === "Geciken") {
+      statusMatch = isLate(r);
+    } else if (statusFilter !== "Tümü") {
+      statusMatch = r.status === statusFilter;
+    }
 
-  if (statusFilter === "Geciken") {
-    statusMatch = isLate(r);
-  } else if (statusFilter !== "Tümü") {
-    statusMatch = r.status === statusFilter;
-  }
+    let dateMatch = true;
 
-  let dateMatch = true;
+    if (startDateFilter) {
+      dateMatch = dateMatch && recordDate >= startDateFilter;
+    }
 
-  if (startDateFilter) {
-    dateMatch = dateMatch && recordDate >= startDateFilter;
-  }
+    if (endDateFilter) {
+      dateMatch = dateMatch && recordDate <= endDateFilter;
+    }
 
-  if (endDateFilter) {
-    dateMatch = dateMatch && recordDate <= endDateFilter;
-  }
-
-  return searchMatch && meetingNoMatch && statusMatch && dateMatch;
-});
+    return searchMatch && meetingNoMatch && statusMatch && dateMatch;
+  });
 
   const lateFilteredRecords = filteredRecords.filter((r) => isLate(r));
+
+  function exportExcel() {
+    if (filteredRecords.length === 0) {
+      alert("Excel'e aktarılacak kayıt yok.");
+      return;
+    }
+
+    const exportRows = filteredRecords.map((r, i) => ({
+      No: i + 1,
+      "Toplantı No": r.meetingNo || "",
+      Tarih: r.meetingDate || r.createdAt?.split("T")[0] || "",
+      "Toplantı Türü": r.meetingType || "",
+      "Toplantı Yeri": r.meetingPlace || "",
+      Karar: r.decision || "",
+      Sorumlu: r.responsible || "",
+      Birim: r.department || "",
+      Öncelik: r.priority || "",
+      Termin: r.deadline || "",
+      Gecikme: isLate(r) ? `${getLateDays(r)} gün` : "",
+      Durum: isLate(r) ? "Gecikti" : r.status || "",
+      "Yönetici Notu": r.managerNote || "",
+    }));
+
+    const header = Object.keys(exportRows[0]);
+    const csv = [
+      header.join(";"),
+      ...exportRows.map((row: any) =>
+        header
+          .map((h) => `"${String(row[h] || "").replace(/"/g, "'")}"`)
+          .join(";")
+      ),
+    ].join("\n");
+
+    const blob = new Blob(["\uFEFF" + csv], {
+      type: "application/vnd.ms-excel;charset=utf-8;",
+    });
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "toplanti-karar-kayitlari.xls";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   function prepareAllDecisionMail() {
     const group = getSelectedGroup();
@@ -500,7 +544,7 @@ export default function DecisionRecordsPage() {
           <tr>
             <td>${i + 1}</td>
             <td>${r.meetingNo || "-"}</td>
-            <td>${r.meetingDate || "-"}</td>
+            <td>${r.meetingDate || r.createdAt?.split("T")[0] || "-"}</td>
             <td>${r.decision || "-"}</td>
             <td>${r.responsible || "-"}</td>
             <td>${r.department || "-"}</td>
@@ -591,7 +635,7 @@ export default function DecisionRecordsPage() {
       .map(
         (r, i) =>
           `${i + 1}) Toplantı No: ${r.meetingNo || "-"}\nTarih: ${
-            r.meetingDate || "-"
+            r.meetingDate || r.createdAt?.split("T")[0] || "-"
           }\nKarar: ${r.decision || "-"}\nSorumlu: ${
             r.responsible || "-"
           }\nBirim: ${r.department || "-"}\nÖncelik: ${
@@ -618,7 +662,7 @@ export default function DecisionRecordsPage() {
       .map(
         (r, i) =>
           `${i + 1}) Toplantı No: ${r.meetingNo || "-"}\nTarih: ${
-            r.meetingDate || "-"
+            r.meetingDate || r.createdAt?.split("T")[0] || "-"
           }\nKarar: ${r.decision || "-"}\nSorumlu: ${
             r.responsible || "-"
           }\nBirim: ${r.department || "-"}\nÖncelik: ${
@@ -641,11 +685,22 @@ export default function DecisionRecordsPage() {
 
     autoTable(doc, {
       startY: 30,
-      head: [["No", "Toplanti No", "Tarih", "Karar", "Sorumlu", "Birim", "Termin", "Durum"]],
+      head: [
+        [
+          "No",
+          "Toplanti No",
+          "Tarih",
+          "Karar",
+          "Sorumlu",
+          "Birim",
+          "Termin",
+          "Durum",
+        ],
+      ],
       body: filteredRecords.map((r, i) => [
         i + 1,
         r.meetingNo,
-        r.meetingDate,
+        r.meetingDate || r.createdAt?.split("T")[0] || "-",
         r.decision,
         r.responsible,
         r.department,
@@ -693,145 +748,163 @@ export default function DecisionRecordsPage() {
     <main className="min-h-screen bg-slate-100 flex">
       <Sidebar fullName="Barış Nevruz" role="Yönetici" />
 
-      <section className="flex-1 min-w-0 p-6 overflow-x-hidden">
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-6 text-slate-900">
-          <h1 className="text-3xl font-bold text-slate-900">Karar Kayıtları</h1>
-          <p className="text-slate-500 mt-2">
+      <section className="flex-1 min-w-0 p-4 overflow-x-hidden">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 mb-4 text-slate-900">
+          <h1 className="text-2xl font-bold text-slate-900">Karar Kayıtları</h1>
+          <p className="text-slate-500 mt-1 text-sm">
             Toplantı no ve tarih filtresine göre kararları süzebilir, sadece seçili kararları mail/WhatsApp gönderebilirsiniz.
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-6 text-slate-900">
-          <h2 className="text-xl font-bold mb-4">
-            {editingId ? "Karar Düzenle" : "Yeni Karar Ekle"}
-          </h2>
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 mb-4 text-slate-900">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-lg font-bold">
+              {editingId ? "Karar Düzenle" : "Yeni Karar Ekle"}
+            </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <input
-              value={form.meetingNo}
-              onChange={(e) => updateForm("meetingNo", e.target.value)}
-              placeholder="Toplantı No"
-              className="bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3"
-            />
-
-            <input
-              type="date"
-              value={form.meetingDate}
-              onChange={(e) => updateForm("meetingDate", e.target.value)}
-              className="bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3"
-            />
-
-            <input
-              value={form.meetingType}
-              onChange={(e) => updateForm("meetingType", e.target.value)}
-              placeholder="Toplantı Türü"
-              className="bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3"
-            />
-
-            <input
-              value={form.meetingPlace}
-              onChange={(e) => updateForm("meetingPlace", e.target.value)}
-              placeholder="Toplantı Yeri"
-              className="bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3"
-            />
-
-            <input
-              type="date"
-              value={form.deadline}
-              onChange={(e) => updateForm("deadline", e.target.value)}
-              className="bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3"
-            />
-
-            <input
-              value={form.responsible}
-              onChange={(e) => updateForm("responsible", e.target.value)}
-              placeholder="Sorumlu Kişi"
-              className="bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3"
-            />
-
-            <input
-              value={form.department}
-              onChange={(e) => updateForm("department", e.target.value)}
-              placeholder="Birim"
-              className="bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3"
-            />
-
-            <select
-              value={form.priority}
-              onChange={(e) => updateForm("priority", e.target.value)}
-              className={`border rounded-xl px-4 py-3 ${getPriorityClass(
-                form.priority
-              )}`}
-            >
-              <option>Düşük</option>
-              <option>Normal</option>
-              <option>Yüksek</option>
-              <option>Kritik</option>
-            </select>
-
-            <select
-              value={form.status}
-              onChange={(e) => updateForm("status", e.target.value)}
-              className={`border rounded-xl px-4 py-3 ${getStatusClass(
-                form.status,
-                false
-              )}`}
-            >
-              <option>Bekliyor</option>
-              <option>Devam Ediyor</option>
-              <option>Tamamlandı</option>
-              <option>İptal</option>
-            </select>
-
-            <textarea
-              value={form.decision}
-              onChange={(e) => updateForm("decision", e.target.value)}
-              placeholder="Karar Maddesi"
-              className="md:col-span-3 bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 min-h-[90px]"
-            />
-
-            <textarea
-              value={form.managerNote}
-              onChange={(e) => updateForm("managerNote", e.target.value)}
-              placeholder="Yönetici Notu"
-              rows={2}
-              className="md:col-span-4 bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3"
-            />
-          </div>
-
-          <div className="flex flex-wrap gap-3 mt-5">
             <button
-              onClick={saveDecision}
-              className="bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold px-6 py-3"
+              onClick={() => {
+                if (showForm) {
+                  cancelEdit();
+                } else {
+                  setShowForm(true);
+                }
+              }}
+              className="bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-semibold px-4 py-2"
             >
-              {editingId ? "Güncelle" : "Kaydet"}
+              {showForm ? "Formu Kapat" : "+ Yeni Karar"}
             </button>
-
-            {editingId && (
-              <button
-                onClick={cancelEdit}
-                className="bg-slate-500 hover:bg-slate-600 text-white rounded-xl font-semibold px-6 py-3"
-              >
-                Vazgeç
-              </button>
-            )}
           </div>
+
+          {showForm && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mt-4">
+                <input
+                  value={form.meetingNo}
+                  onChange={(e) => updateForm("meetingNo", e.target.value)}
+                  placeholder="Toplantı No"
+                  className="bg-white border border-slate-300 text-slate-900 rounded-xl px-3 py-2"
+                />
+
+                <input
+                  type="date"
+                  value={form.meetingDate}
+                  onChange={(e) => updateForm("meetingDate", e.target.value)}
+                  className="bg-white border border-slate-300 text-slate-900 rounded-xl px-3 py-2"
+                />
+
+                <input
+                  value={form.meetingType}
+                  onChange={(e) => updateForm("meetingType", e.target.value)}
+                  placeholder="Toplantı Türü"
+                  className="bg-white border border-slate-300 text-slate-900 rounded-xl px-3 py-2"
+                />
+
+                <input
+                  value={form.meetingPlace}
+                  onChange={(e) => updateForm("meetingPlace", e.target.value)}
+                  placeholder="Toplantı Yeri"
+                  className="bg-white border border-slate-300 text-slate-900 rounded-xl px-3 py-2"
+                />
+
+                <input
+                  type="date"
+                  value={form.deadline}
+                  onChange={(e) => updateForm("deadline", e.target.value)}
+                  className="bg-white border border-slate-300 text-slate-900 rounded-xl px-3 py-2"
+                />
+
+                <input
+                  value={form.responsible}
+                  onChange={(e) => updateForm("responsible", e.target.value)}
+                  placeholder="Sorumlu Kişi"
+                  className="bg-white border border-slate-300 text-slate-900 rounded-xl px-3 py-2"
+                />
+
+                <input
+                  value={form.department}
+                  onChange={(e) => updateForm("department", e.target.value)}
+                  placeholder="Birim"
+                  className="bg-white border border-slate-300 text-slate-900 rounded-xl px-3 py-2"
+                />
+
+                <select
+                  value={form.priority}
+                  onChange={(e) => updateForm("priority", e.target.value)}
+                  className={`border rounded-xl px-3 py-2 ${getPriorityClass(
+                    form.priority
+                  )}`}
+                >
+                  <option>Düşük</option>
+                  <option>Normal</option>
+                  <option>Yüksek</option>
+                  <option>Kritik</option>
+                </select>
+
+                <select
+                  value={form.status}
+                  onChange={(e) => updateForm("status", e.target.value)}
+                  className={`border rounded-xl px-3 py-2 ${getStatusClass(
+                    form.status,
+                    false
+                  )}`}
+                >
+                  <option>Bekliyor</option>
+                  <option>Devam Ediyor</option>
+                  <option>Tamamlandı</option>
+                  <option>İptal</option>
+                </select>
+
+                <button
+                  onClick={saveDecision}
+                  className="bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold px-4 py-2"
+                >
+                  {editingId ? "Güncelle" : "Kaydet"}
+                </button>
+
+                <textarea
+                  value={form.decision}
+                  onChange={(e) => updateForm("decision", e.target.value)}
+                  placeholder="Karar Maddesi"
+                  rows={2}
+                  className="md:col-span-3 bg-white border border-slate-300 text-slate-900 rounded-xl px-3 py-2 min-h-[58px]"
+                />
+
+                <textarea
+                  value={form.managerNote}
+                  onChange={(e) => updateForm("managerNote", e.target.value)}
+                  placeholder="Yönetici Notu"
+                  rows={2}
+                  className="md:col-span-2 bg-white border border-slate-300 text-slate-900 rounded-xl px-3 py-2 min-h-[58px]"
+                />
+              </div>
+
+              {editingId && (
+                <button
+                  onClick={cancelEdit}
+                  className="mt-3 bg-slate-500 hover:bg-slate-600 text-white rounded-xl font-semibold px-5 py-2"
+                >
+                  Vazgeç
+                </button>
+              )}
+            </>
+          )}
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-6">
-          <div className="space-y-5">
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 mb-4">
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Ara..."
-                className="bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 w-full"
+                className="bg-white border border-slate-300 text-slate-900 rounded-xl px-3 py-2 w-full"
               />
 
               <select
                 value={meetingNoFilter}
                 onChange={(e) => setMeetingNoFilter(e.target.value)}
-                className="bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 w-full"
+                className="bg-white border border-slate-300 text-slate-900 rounded-xl px-3 py-2 w-full"
               >
                 <option>Tümü</option>
                 {meetingNos.map((no) => (
@@ -842,7 +915,7 @@ export default function DecisionRecordsPage() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 w-full"
+                className="bg-white border border-slate-300 text-slate-900 rounded-xl px-3 py-2 w-full"
               >
                 <option>Tümü</option>
                 <option>Bekliyor</option>
@@ -855,7 +928,7 @@ export default function DecisionRecordsPage() {
               <select
                 value={selectedMailGroup}
                 onChange={(e) => setSelectedMailGroup(e.target.value)}
-                className="bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 w-full"
+                className="bg-white border border-slate-300 text-slate-900 rounded-xl px-3 py-2 w-full"
               >
                 {mailGroups.length === 0 && <option>Mail grubu yok</option>}
                 {mailGroups.map((g) => (
@@ -869,60 +942,63 @@ export default function DecisionRecordsPage() {
                 type="date"
                 value={startDateFilter}
                 onChange={(e) => setStartDateFilter(e.target.value)}
-                className="bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 w-full"
+                className="bg-white border border-slate-300 text-slate-900 rounded-xl px-3 py-2 w-full"
               />
 
               <input
                 type="date"
                 value={endDateFilter}
                 onChange={(e) => setEndDateFilter(e.target.value)}
-                className="bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 w-full"
+                className="bg-white border border-slate-300 text-slate-900 rounded-xl px-3 py-2 w-full"
               />
             </div>
 
-            <div className="flex flex-wrap gap-3">
-              <button onClick={() => setQuickDate("week")} className="bg-slate-200 hover:bg-slate-300 text-slate-900 rounded-xl font-semibold px-4 py-2">
+            <div className="flex flex-wrap gap-2">
+              <button onClick={() => setQuickDate("week")} className="bg-slate-200 hover:bg-slate-300 text-slate-900 rounded-xl font-semibold px-3 py-2 text-sm">
                 Son 7 Gün
               </button>
-              <button onClick={() => setQuickDate("last15")} className="bg-slate-200 hover:bg-slate-300 text-slate-900 rounded-xl font-semibold px-4 py-2">
+              <button onClick={() => setQuickDate("last15")} className="bg-slate-200 hover:bg-slate-300 text-slate-900 rounded-xl font-semibold px-3 py-2 text-sm">
                 Son 15 Gün
               </button>
-              <button onClick={() => setQuickDate("month")} className="bg-slate-200 hover:bg-slate-300 text-slate-900 rounded-xl font-semibold px-4 py-2">
+              <button onClick={() => setQuickDate("month")} className="bg-slate-200 hover:bg-slate-300 text-slate-900 rounded-xl font-semibold px-3 py-2 text-sm">
                 Bu Ay
               </button>
-              <button onClick={() => setQuickDate("all")} className="bg-slate-200 hover:bg-slate-300 text-slate-900 rounded-xl font-semibold px-4 py-2">
+              <button onClick={() => setQuickDate("all")} className="bg-slate-200 hover:bg-slate-300 text-slate-900 rounded-xl font-semibold px-3 py-2 text-sm">
                 Tüm Kayıtlar
               </button>
             </div>
 
-            <div className="flex flex-wrap gap-4">
-              <button onClick={loadRecords} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold px-6 py-3">
+            <div className="flex flex-wrap gap-2">
+              <button onClick={loadRecords} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold px-4 py-2 text-sm">
                 Yenile
               </button>
-              <button onClick={createPdfReport} className="bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold px-6 py-3">
+              <button onClick={createPdfReport} className="bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold px-4 py-2 text-sm">
                 PDF
               </button>
-              <button onClick={prepareAllDecisionMail} className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold px-6 py-3">
+              <button onClick={exportExcel} className="bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold px-4 py-2 text-sm">
+                Excel
+              </button>
+              <button onClick={prepareAllDecisionMail} className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold px-4 py-2 text-sm">
                 Karar Mail
               </button>
-              <button onClick={prepareLateTaskMail} className="bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-semibold px-6 py-3">
+              <button onClick={prepareLateTaskMail} className="bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-semibold px-4 py-2 text-sm">
                 Geciken Mail
               </button>
-              <button onClick={sendWhatsappAll} className="bg-green-700 hover:bg-green-800 text-white rounded-xl font-semibold px-6 py-3">
+              <button onClick={sendWhatsappAll} className="bg-green-700 hover:bg-green-800 text-white rounded-xl font-semibold px-4 py-2 text-sm">
                 Karar WhatsApp
               </button>
-              <button onClick={sendWhatsappLate} className="bg-lime-700 hover:bg-lime-800 text-white rounded-xl font-semibold px-6 py-3">
+              <button onClick={sendWhatsappLate} className="bg-lime-700 hover:bg-lime-800 text-white rounded-xl font-semibold px-4 py-2 text-sm">
                 Geciken WhatsApp
               </button>
             </div>
           </div>
 
-          <div className="mt-5 text-sm text-slate-600">
+          <div className="mt-4 text-sm text-slate-600">
             Gösterilen kayıt: <b>{filteredRecords.length}</b> / Geciken:{" "}
             <b className="text-red-700">{lateFilteredRecords.length}</b>
           </div>
 
-          <div className="mt-5 overflow-x-auto">
+          <div className="mt-4 overflow-x-auto">
             <table className="w-full table-fixed border border-slate-300 text-sm min-w-[1200px]">
               <colgroup>
                 <col style={{ width: "5%" }} />
@@ -971,7 +1047,7 @@ export default function DecisionRecordsPage() {
                       </td>
 
                       <td className="border border-slate-300 p-2 text-center whitespace-nowrap">
-                        {r.meetingDate || "-"}
+                        {r.meetingDate || r.createdAt?.split("T")[0] || "-"}
                       </td>
 
                       <td className="border border-slate-300 p-2 align-top">
