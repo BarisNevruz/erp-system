@@ -10,7 +10,7 @@ const handler = NextAuth({
       authorization: {
         params: {
           scope:
-            "openid profile email offline_access User.Read Mail.Send Mail.ReadWrite",
+            "openid profile email User.Read Mail.Send",
           prompt: "consent",
         },
       },
