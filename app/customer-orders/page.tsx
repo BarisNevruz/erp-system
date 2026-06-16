@@ -34,6 +34,7 @@ export default function CustomerOrdersPage() {
   const [form, setForm] = useState(emptyForm);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadOrders();
@@ -45,7 +46,8 @@ export default function CustomerOrdersPage() {
     const { data, error } = await supabase
       .from("customer_orders")
       .select("*")
-      .order("siparis_no", { ascending: true });
+      .order("siparis_tarihi", { ascending: false, nullsFirst: false })
+      .order("siparis_no", { ascending: false });
 
     if (error) {
       alert("Müşteri siparişleri alınamadı: " + error.message);
@@ -68,14 +70,17 @@ export default function CustomerOrdersPage() {
       return;
     }
 
-    const { data: existing } = await supabase
+    const duplicateQuery = supabase
       .from("customer_orders")
       .select("id")
-      .eq("siparis_no", form.siparis_no)
-      .maybeSingle();
+      .eq("siparis_no", form.siparis_no);
 
-    if (existing) {
-      alert("Bu sipariş numarası zaten kayıtlı.");
+    const { data: duplicate } = editingId
+      ? await duplicateQuery.neq("id", editingId).maybeSingle()
+      : await duplicateQuery.maybeSingle();
+
+    if (duplicate) {
+      alert("Bu sipariş numarası başka bir kayıtta zaten var.");
       return;
     }
 
@@ -91,16 +96,53 @@ export default function CustomerOrdersPage() {
       durum: form.durum || "Aktif",
     };
 
-    const { error } = await supabase.from("customer_orders").insert(payload);
+    if (editingId) {
+      const { error } = await supabase
+        .from("customer_orders")
+        .update(payload)
+        .eq("id", editingId);
 
-    if (error) {
-      alert("Kayıt hatası: " + error.message);
-      return;
+      if (error) {
+        alert("Güncelleme hatası: " + error.message);
+        return;
+      }
+
+      alert("Müşteri siparişi güncellendi.");
+    } else {
+      const { error } = await supabase.from("customer_orders").insert(payload);
+
+      if (error) {
+        alert("Kayıt hatası: " + error.message);
+        return;
+      }
+
+      alert("Müşteri siparişi kaydedildi.");
     }
 
-    alert("Müşteri siparişi kaydedildi.");
-    setForm(emptyForm);
+    cancelEdit();
     loadOrders();
+  }
+
+  function startEdit(order: CustomerOrder) {
+    setEditingId(order.id);
+    setForm({
+      siparis_no: order.siparis_no || "",
+      musteri: order.musteri || "",
+      proje_adi: order.proje_adi || "",
+      urun_tipi: order.urun_tipi || "",
+      adet: Number(order.adet) || 1,
+      siparis_tarihi: order.siparis_tarihi || "",
+      termin_tarihi: order.termin_tarihi || "",
+      aciklama: order.aciklama || "",
+      durum: order.durum || "Aktif",
+    });
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setForm(emptyForm);
   }
 
   async function transferToProduction(order: CustomerOrder) {
@@ -122,22 +164,18 @@ export default function CustomerOrdersPage() {
       return;
     }
 
-    const rows = Array.from({ length: adet }, (_, i) => {
-      const uretimNo = String(startNo + i);
-
-      return {
-        project_id: order.id,
-        customer_order_id: order.id,
-        uretim_no: uretimNo,
-        uretim_durumu: "Planlandı",
-        uretim_yuzdesi: 0,
-        son_asama: "",
-        sorumlu: "",
-        notlar: "",
-        baslama_tarihi: null,
-        bitis_tarihi: null,
-      };
-    });
+    const rows = Array.from({ length: adet }, (_, i) => ({
+      project_id: order.id,
+      customer_order_id: order.id,
+      uretim_no: String(startNo + i),
+      uretim_durumu: "Planlandı",
+      uretim_yuzdesi: 0,
+      son_asama: "",
+      sorumlu: "",
+      notlar: "",
+      baslama_tarihi: null,
+      bitis_tarihi: null,
+    }));
 
     const { error } = await supabase.from("production_tracking").insert(rows);
 
@@ -160,8 +198,22 @@ export default function CustomerOrdersPage() {
       return;
     }
 
+    if (editingId === id) cancelEdit();
+
     loadOrders();
   }
+
+  const filteredOrders = orders.filter((order) => {
+    const text = `
+      ${order.siparis_no || ""}
+      ${order.musteri || ""}
+      ${order.proje_adi || ""}
+      ${order.urun_tipi || ""}
+      ${order.aciklama || ""}
+    `.toLowerCase();
+
+    return text.includes(search.toLowerCase());
+  });
 
   function exportExcel() {
     const rows = filteredOrders.map((o) => ({
@@ -194,18 +246,6 @@ export default function CustomerOrdersPage() {
     URL.revokeObjectURL(url);
   }
 
-  const filteredOrders = orders.filter((order) => {
-    const text = `
-      ${order.siparis_no || ""}
-      ${order.musteri || ""}
-      ${order.proje_adi || ""}
-      ${order.urun_tipi || ""}
-      ${order.aciklama || ""}
-    `.toLowerCase();
-
-    return text.includes(search.toLowerCase());
-  });
-
   return (
     <main className="min-h-screen bg-slate-100 flex">
       <Sidebar fullName="Barış Nevruz" role="Yönetici" />
@@ -217,13 +257,13 @@ export default function CustomerOrdersPage() {
               Müşteri Siparişleri
             </h1>
             <p className="text-slate-500">
-              Müşteri siparişlerini girin, üretime tek tuşla aktarın.
+              Müşteri siparişlerini girin, düzenleyin ve üretime tek tuşla aktarın.
             </p>
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
             <h2 className="text-lg font-bold text-slate-900 mb-4">
-              Yeni Müşteri Siparişi
+              {editingId ? "Müşteri Siparişi Düzenle" : "Yeni Müşteri Siparişi"}
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -244,9 +284,17 @@ export default function CustomerOrdersPage() {
 
               <textarea value={form.aciklama} onChange={(e) => setForm({ ...form, aciklama: e.target.value })} placeholder="Açıklama" rows={2} className="md:col-span-3 border border-slate-300 rounded-xl px-4 py-3 text-slate-900" />
 
-              <button onClick={saveOrder} className="bg-green-600 hover:bg-green-700 text-white rounded-xl px-4 py-3 font-semibold">
-                Kaydet
-              </button>
+              <div className="flex gap-2">
+                <button onClick={saveOrder} className="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-xl px-4 py-3 font-semibold">
+                  {editingId ? "Güncelle" : "Kaydet"}
+                </button>
+
+                {editingId && (
+                  <button onClick={cancelEdit} className="flex-1 bg-slate-500 hover:bg-slate-600 text-white rounded-xl px-4 py-3 font-semibold">
+                    Vazgeç
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -266,7 +314,7 @@ export default function CustomerOrdersPage() {
 
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[1250px]">
+              <table className="w-full text-sm min-w-[1350px]">
                 <thead className="bg-slate-50 text-slate-700">
                   <tr>
                     <th className="px-4 py-4 text-left">Başlangıç No</th>
@@ -274,6 +322,7 @@ export default function CustomerOrdersPage() {
                     <th className="px-4 py-4 text-left">Proje</th>
                     <th className="px-4 py-4 text-left">Ürün Tipi</th>
                     <th className="px-4 py-4 text-left">Adet</th>
+                    <th className="px-4 py-4 text-left">Sipariş Tarihi</th>
                     <th className="px-4 py-4 text-left">Termin</th>
                     <th className="px-4 py-4 text-left">Durum</th>
                     <th className="px-4 py-4 text-left">Açıklama</th>
@@ -289,6 +338,7 @@ export default function CustomerOrdersPage() {
                       <td className="px-4 py-4 text-slate-700">{order.proje_adi || "-"}</td>
                       <td className="px-4 py-4 text-slate-700">{order.urun_tipi || "-"}</td>
                       <td className="px-4 py-4 text-slate-700">{order.adet || 1}</td>
+                      <td className="px-4 py-4 text-slate-700">{order.siparis_tarihi || "-"}</td>
                       <td className="px-4 py-4 text-slate-700">{order.termin_tarihi || "-"}</td>
                       <td className="px-4 py-4">
                         <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold">
@@ -297,7 +347,10 @@ export default function CustomerOrdersPage() {
                       </td>
                       <td className="px-4 py-4 text-slate-700 max-w-[240px]">{order.aciklama || "-"}</td>
                       <td className="px-4 py-4">
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap">
+                          <button onClick={() => startEdit(order)} className="bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-3 py-2 font-semibold">
+                            Düzenle
+                          </button>
                           <button onClick={() => transferToProduction(order)} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-3 py-2 font-semibold">
                             Üretime Aktar
                           </button>
@@ -311,7 +364,7 @@ export default function CustomerOrdersPage() {
 
                   {filteredOrders.length === 0 && (
                     <tr>
-                      <td colSpan={9} className="px-4 py-8 text-center text-slate-500">
+                      <td colSpan={10} className="px-4 py-8 text-center text-slate-500">
                         Kayıt bulunamadı.
                       </td>
                     </tr>
