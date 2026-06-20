@@ -17,6 +17,12 @@ type CustomerOrder = {
   durum?: string;
 };
 
+type SelectItem = {
+  id: string;
+  name: string;
+  active?: boolean;
+};
+
 const emptyForm = {
   siparis_no: "",
   musteri: "",
@@ -31,14 +37,50 @@ const emptyForm = {
 
 export default function CustomerOrdersPage() {
   const [orders, setOrders] = useState<CustomerOrder[]>([]);
+  const [customers, setCustomers] = useState<SelectItem[]>([]);
+  const [productTypes, setProductTypes] = useState<SelectItem[]>([]);
   const [form, setForm] = useState(emptyForm);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
-    loadOrders();
+    loadAll();
   }, []);
+
+  async function loadAll() {
+    await Promise.all([loadOrders(), loadCustomers(), loadProductTypes()]);
+  }
+
+  async function loadCustomers() {
+    const { data, error } = await supabase
+      .from("customer_list")
+      .select("*")
+      .eq("active", true)
+      .order("name", { ascending: true });
+
+    if (error) {
+      alert("Müşteri listesi alınamadı: " + error.message);
+      return;
+    }
+
+    setCustomers(data || []);
+  }
+
+  async function loadProductTypes() {
+    const { data, error } = await supabase
+      .from("product_types")
+      .select("*")
+      .eq("active", true)
+      .order("name", { ascending: true });
+
+    if (error) {
+      alert("Ürün tipleri alınamadı: " + error.message);
+      return;
+    }
+
+    setProductTypes(data || []);
+  }
 
   async function loadOrders() {
     setLoading(true);
@@ -60,15 +102,9 @@ export default function CustomerOrdersPage() {
   }
 
   async function saveOrder() {
-    if (!form.siparis_no.trim()) {
-      alert("Sipariş no zorunludur.");
-      return;
-    }
-
-    if (!form.musteri.trim()) {
-      alert("Müşteri adı zorunludur.");
-      return;
-    }
+    if (!form.siparis_no.trim()) return alert("Sipariş no zorunludur.");
+    if (!form.musteri.trim()) return alert("Müşteri seçiniz.");
+    if (!form.urun_tipi.trim()) return alert("Ürün tipi seçiniz.");
 
     const duplicateQuery = supabase
       .from("customer_orders")
@@ -102,19 +138,13 @@ export default function CustomerOrdersPage() {
         .update(payload)
         .eq("id", editingId);
 
-      if (error) {
-        alert("Güncelleme hatası: " + error.message);
-        return;
-      }
+      if (error) return alert("Güncelleme hatası: " + error.message);
 
       alert("Müşteri siparişi güncellendi.");
     } else {
       const { error } = await supabase.from("customer_orders").insert(payload);
 
-      if (error) {
-        alert("Kayıt hatası: " + error.message);
-        return;
-      }
+      if (error) return alert("Kayıt hatası: " + error.message);
 
       alert("Müşteri siparişi kaydedildi.");
     }
@@ -179,24 +209,20 @@ export default function CustomerOrdersPage() {
 
     const { error } = await supabase.from("production_tracking").insert(rows);
 
-    if (error) {
-      alert("Üretime aktarım hatası: " + error.message);
-      return;
-    }
+    if (error) return alert("Üretime aktarım hatası: " + error.message);
 
     alert(`${adet} adet üretim kaydı oluşturuldu.`);
   }
 
   async function deleteOrder(id: string) {
-    const ok = confirm("Bu müşteri siparişini silmek istiyor musunuz?");
-    if (!ok) return;
+    if (!confirm("Bu müşteri siparişini silmek istiyor musunuz?")) return;
 
-    const { error } = await supabase.from("customer_orders").delete().eq("id", id);
+    const { error } = await supabase
+      .from("customer_orders")
+      .delete()
+      .eq("id", id);
 
-    if (error) {
-      alert("Silme hatası: " + error.message);
-      return;
-    }
+    if (error) return alert("Silme hatası: " + error.message);
 
     if (editingId === id) cancelEdit();
 
@@ -257,7 +283,7 @@ export default function CustomerOrdersPage() {
               Müşteri Siparişleri
             </h1>
             <p className="text-slate-500">
-              Müşteri siparişlerini girin, düzenleyin ve üretime tek tuşla aktarın.
+              Müşteri ve ürün tipini ayarlardan gelen listeden seçerek sipariş oluşturun.
             </p>
           </div>
 
@@ -267,46 +293,137 @@ export default function CustomerOrdersPage() {
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <input value={form.siparis_no} onChange={(e) => setForm({ ...form, siparis_no: e.target.value })} placeholder="Başlangıç Sipariş No" className="border border-slate-300 rounded-xl px-4 py-3 text-slate-900" />
-              <input value={form.musteri} onChange={(e) => setForm({ ...form, musteri: e.target.value })} placeholder="Müşteri" className="border border-slate-300 rounded-xl px-4 py-3 text-slate-900" />
-              <input value={form.proje_adi} onChange={(e) => setForm({ ...form, proje_adi: e.target.value })} placeholder="Proje Adı" className="border border-slate-300 rounded-xl px-4 py-3 text-slate-900" />
-              <input value={form.urun_tipi} onChange={(e) => setForm({ ...form, urun_tipi: e.target.value })} placeholder="Ürün Tipi" className="border border-slate-300 rounded-xl px-4 py-3 text-slate-900" />
+              <input
+                value={form.siparis_no}
+                onChange={(e) => setForm({ ...form, siparis_no: e.target.value })}
+                placeholder="Başlangıç Sipariş No"
+                className="border border-slate-300 rounded-xl px-4 py-3 text-slate-900"
+              />
 
-              <input type="number" value={form.adet} onChange={(e) => setForm({ ...form, adet: Number(e.target.value) })} placeholder="Adet" className="border border-slate-300 rounded-xl px-4 py-3 text-slate-900" />
-              <input type="date" value={form.siparis_tarihi} onChange={(e) => setForm({ ...form, siparis_tarihi: e.target.value })} className="border border-slate-300 rounded-xl px-4 py-3 text-slate-900" />
-              <input type="date" value={form.termin_tarihi} onChange={(e) => setForm({ ...form, termin_tarihi: e.target.value })} className="border border-slate-300 rounded-xl px-4 py-3 text-slate-900" />
+              <select
+                value={form.musteri}
+                onChange={(e) => setForm({ ...form, musteri: e.target.value })}
+                className="border border-slate-300 rounded-xl px-4 py-3 text-slate-900"
+              >
+                <option value="">Müşteri seçiniz</option>
+                {customers.map((c) => (
+                  <option key={c.id} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
 
-              <select value={form.durum} onChange={(e) => setForm({ ...form, durum: e.target.value })} className="border border-slate-300 rounded-xl px-4 py-3 text-slate-900">
+              <input
+                value={form.proje_adi}
+                onChange={(e) => setForm({ ...form, proje_adi: e.target.value })}
+                placeholder="Proje Adı"
+                className="border border-slate-300 rounded-xl px-4 py-3 text-slate-900"
+              />
+
+              <select
+                value={form.urun_tipi}
+                onChange={(e) => setForm({ ...form, urun_tipi: e.target.value })}
+                className="border border-slate-300 rounded-xl px-4 py-3 text-slate-900"
+              >
+                <option value="">Ürün tipi seçiniz</option>
+                {productTypes.map((p) => (
+                  <option key={p.id} value={p.name}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+
+              <input
+                type="number"
+                value={form.adet}
+                onChange={(e) => setForm({ ...form, adet: Number(e.target.value) })}
+                placeholder="Adet"
+                className="border border-slate-300 rounded-xl px-4 py-3 text-slate-900"
+              />
+
+              <input
+                type="date"
+                value={form.siparis_tarihi}
+                onChange={(e) =>
+                  setForm({ ...form, siparis_tarihi: e.target.value })
+                }
+                className="border border-slate-300 rounded-xl px-4 py-3 text-slate-900"
+              />
+
+              <input
+                type="date"
+                value={form.termin_tarihi}
+                onChange={(e) =>
+                  setForm({ ...form, termin_tarihi: e.target.value })
+                }
+                className="border border-slate-300 rounded-xl px-4 py-3 text-slate-900"
+              />
+
+              <select
+                value={form.durum}
+                onChange={(e) => setForm({ ...form, durum: e.target.value })}
+                className="border border-slate-300 rounded-xl px-4 py-3 text-slate-900"
+              >
                 <option>Aktif</option>
                 <option>Pasif</option>
                 <option>İptal</option>
               </select>
 
-              <textarea value={form.aciklama} onChange={(e) => setForm({ ...form, aciklama: e.target.value })} placeholder="Açıklama" rows={2} className="md:col-span-3 border border-slate-300 rounded-xl px-4 py-3 text-slate-900" />
+              <textarea
+                value={form.aciklama}
+                onChange={(e) => setForm({ ...form, aciklama: e.target.value })}
+                placeholder="Açıklama"
+                rows={2}
+                className="md:col-span-3 border border-slate-300 rounded-xl px-4 py-3 text-slate-900"
+              />
 
               <div className="flex gap-2">
-                <button onClick={saveOrder} className="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-xl px-4 py-3 font-semibold">
+                <button
+                  onClick={saveOrder}
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-xl px-4 py-3 font-semibold"
+                >
                   {editingId ? "Güncelle" : "Kaydet"}
                 </button>
 
                 {editingId && (
-                  <button onClick={cancelEdit} className="flex-1 bg-slate-500 hover:bg-slate-600 text-white rounded-xl px-4 py-3 font-semibold">
+                  <button
+                    onClick={cancelEdit}
+                    className="flex-1 bg-slate-500 hover:bg-slate-600 text-white rounded-xl px-4 py-3 font-semibold"
+                  >
                     Vazgeç
                   </button>
                 )}
               </div>
             </div>
+
+            {(customers.length === 0 || productTypes.length === 0) && (
+              <div className="mt-4 bg-yellow-50 border border-yellow-300 text-yellow-800 rounded-xl p-4 text-sm">
+                Müşteri veya ürün tipi listesi boş görünüyor. Ayarlar sayfasından
+                müşteri ve ürün tipi ekleyin.
+              </div>
+            )}
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Ara..." className="border border-slate-300 rounded-xl px-4 py-3 text-slate-900" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Ara..."
+                className="border border-slate-300 rounded-xl px-4 py-3 text-slate-900"
+              />
 
-              <button onClick={loadOrders} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-4 py-3 font-semibold">
+              <button
+                onClick={loadAll}
+                className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-4 py-3 font-semibold"
+              >
                 Yenile
               </button>
 
-              <button onClick={exportExcel} className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-4 py-3 font-semibold">
+              <button
+                onClick={exportExcel}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-4 py-3 font-semibold"
+              >
                 Excel'e Aktar
               </button>
             </div>
@@ -332,29 +449,57 @@ export default function CustomerOrdersPage() {
 
                 <tbody>
                   {filteredOrders.map((order) => (
-                    <tr key={order.id} className="border-t border-slate-100 hover:bg-slate-50">
-                      <td className="px-4 py-4 font-medium text-slate-900">{order.siparis_no || "-"}</td>
-                      <td className="px-4 py-4 text-slate-700">{order.musteri || "-"}</td>
-                      <td className="px-4 py-4 text-slate-700">{order.proje_adi || "-"}</td>
-                      <td className="px-4 py-4 text-slate-700">{order.urun_tipi || "-"}</td>
-                      <td className="px-4 py-4 text-slate-700">{order.adet || 1}</td>
-                      <td className="px-4 py-4 text-slate-700">{order.siparis_tarihi || "-"}</td>
-                      <td className="px-4 py-4 text-slate-700">{order.termin_tarihi || "-"}</td>
+                    <tr
+                      key={order.id}
+                      className="border-t border-slate-100 hover:bg-slate-50"
+                    >
+                      <td className="px-4 py-4 font-medium text-slate-900">
+                        {order.siparis_no || "-"}
+                      </td>
+                      <td className="px-4 py-4 text-slate-700">
+                        {order.musteri || "-"}
+                      </td>
+                      <td className="px-4 py-4 text-slate-700">
+                        {order.proje_adi || "-"}
+                      </td>
+                      <td className="px-4 py-4 text-slate-700">
+                        {order.urun_tipi || "-"}
+                      </td>
+                      <td className="px-4 py-4 text-slate-700">
+                        {order.adet || 1}
+                      </td>
+                      <td className="px-4 py-4 text-slate-700">
+                        {order.siparis_tarihi || "-"}
+                      </td>
+                      <td className="px-4 py-4 text-slate-700">
+                        {order.termin_tarihi || "-"}
+                      </td>
                       <td className="px-4 py-4">
                         <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold">
                           {order.durum || "Aktif"}
                         </span>
                       </td>
-                      <td className="px-4 py-4 text-slate-700 max-w-[240px]">{order.aciklama || "-"}</td>
+                      <td className="px-4 py-4 text-slate-700 max-w-[240px]">
+                        {order.aciklama || "-"}
+                      </td>
                       <td className="px-4 py-4">
                         <div className="flex gap-2 flex-wrap">
-                          <button onClick={() => startEdit(order)} className="bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-3 py-2 font-semibold">
+                          <button
+                            onClick={() => startEdit(order)}
+                            className="bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-3 py-2 font-semibold"
+                          >
                             Düzenle
                           </button>
-                          <button onClick={() => transferToProduction(order)} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-3 py-2 font-semibold">
+                          <button
+                            onClick={() => transferToProduction(order)}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-3 py-2 font-semibold"
+                          >
                             Üretime Aktar
                           </button>
-                          <button onClick={() => deleteOrder(order.id)} className="bg-red-600 hover:bg-red-700 text-white rounded-lg px-3 py-2 font-semibold">
+                          <button
+                            onClick={() => deleteOrder(order.id)}
+                            className="bg-red-600 hover:bg-red-700 text-white rounded-lg px-3 py-2 font-semibold"
+                          >
                             Sil
                           </button>
                         </div>
@@ -364,7 +509,10 @@ export default function CustomerOrdersPage() {
 
                   {filteredOrders.length === 0 && (
                     <tr>
-                      <td colSpan={10} className="px-4 py-8 text-center text-slate-500">
+                      <td
+                        colSpan={10}
+                        className="px-4 py-8 text-center text-slate-500"
+                      >
                         Kayıt bulunamadı.
                       </td>
                     </tr>
@@ -378,7 +526,9 @@ export default function CustomerOrdersPage() {
             </div>
           </div>
 
-          {loading && <p className="text-slate-500 text-sm">Veriler yükleniyor...</p>}
+          {loading && (
+            <p className="text-slate-500 text-sm">Veriler yükleniyor...</p>
+          )}
         </div>
       </section>
     </main>
