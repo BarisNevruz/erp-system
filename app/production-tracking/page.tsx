@@ -24,6 +24,7 @@ type Production = {
   son_asama?: string;
   sorumlu?: string;
   notlar?: string;
+  bitis_tarihi?: string;
 };
 
 type Row = Production & {
@@ -71,14 +72,39 @@ export default function ProductionTrackingPage() {
             o.id === p.customer_order_id || o.id === p.project_id
         );
 
-        return {
-          ...p,
-          order,
-        };
+        return { ...p, order };
       }) || [];
 
     setRows(combined);
     setLoading(false);
+  }
+
+  async function markCompleted(row: Row) {
+    const ok = confirm(
+      `${row.uretim_no || "-"} üretim numarasını tamamlandı yapmak istiyor musunuz?`
+    );
+
+    if (!ok) return;
+
+    const today = new Date().toISOString().split("T")[0];
+
+    const { error } = await supabase
+      .from("production_tracking")
+      .update({
+        uretim_yuzdesi: 100,
+        uretim_durumu: "Tamamlandı",
+        son_asama: "Sevk",
+        bitis_tarihi: today,
+      })
+      .eq("id", row.id);
+
+    if (error) {
+      alert("Tamamlandı yapılamadı: " + error.message);
+      return;
+    }
+
+    alert("Üretim tamamlandı olarak işaretlendi.");
+    loadData();
   }
 
   function getStatus(row: Row) {
@@ -121,6 +147,7 @@ export default function ProductionTrackingPage() {
       Durum: getStatus(r),
       "Son Aşama": r.son_asama || "",
       Sorumlu: r.sorumlu || "",
+      "Bitiş Tarihi": r.bitis_tarihi || "",
       Not: r.notlar || "",
     }));
 
@@ -238,13 +265,15 @@ export default function ProductionTrackingPage() {
           <div className="space-y-3">
             {filteredRows.map((row) => {
               const status = getStatus(row);
+              const isCompleted =
+                status === "Tamamlandı" || status === "Sevk Edildi";
 
               return (
                 <div
                   key={row.id}
                   className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4"
                 >
-                  <div className="grid grid-cols-2 md:grid-cols-6 gap-4 items-center">
+                  <div className="grid grid-cols-2 md:grid-cols-7 gap-4 items-center">
                     <div>
                       <p className="text-xs text-slate-500">Üretim No</p>
                       <p className="font-bold text-slate-900">
@@ -261,12 +290,16 @@ export default function ProductionTrackingPage() {
 
                     <div>
                       <p className="text-xs text-slate-500">Proje</p>
-                      <p className="text-slate-800">{row.order?.proje_adi || "-"}</p>
+                      <p className="text-slate-800">
+                        {row.order?.proje_adi || "-"}
+                      </p>
                     </div>
 
                     <div>
                       <p className="text-xs text-slate-500">Ürün</p>
-                      <p className="text-slate-800">{row.order?.urun_tipi || "-"}</p>
+                      <p className="text-slate-800">
+                        {row.order?.urun_tipi || "-"}
+                      </p>
                     </div>
 
                     <div>
@@ -285,9 +318,23 @@ export default function ProductionTrackingPage() {
                         {status}
                       </span>
                     </div>
+
+                    <div>
+                      <button
+                        onClick={() => markCompleted(row)}
+                        disabled={isCompleted}
+                        className={
+                          isCompleted
+                            ? "bg-slate-300 text-slate-500 rounded-xl px-3 py-2 font-semibold cursor-not-allowed"
+                            : "bg-green-600 hover:bg-green-700 text-white rounded-xl px-3 py-2 font-semibold"
+                        }
+                      >
+                        {isCompleted ? "Tamamlandı" : "Tamamlandı Yap"}
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4 pt-4 border-t border-slate-100">
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-4 pt-4 border-t border-slate-100">
                     <div>
                       <p className="text-xs text-slate-500">Üretim %</p>
                       <div className="flex items-center gap-3">
@@ -322,6 +369,13 @@ export default function ProductionTrackingPage() {
                     <div>
                       <p className="text-xs text-slate-500">Sorumlu</p>
                       <p className="text-slate-800">{row.sorumlu || "-"}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-slate-500">Bitiş Tarihi</p>
+                      <p className="text-slate-800">
+                        {row.bitis_tarihi || "-"}
+                      </p>
                     </div>
 
                     <div>
